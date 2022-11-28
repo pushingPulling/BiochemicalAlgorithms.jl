@@ -19,4 +19,5 @@ using Test
         include("test_residue.jl")
         include("test_types.jl")
     end
+    @testset "Mapping" begin include("test_mappings.jl") end
 end
