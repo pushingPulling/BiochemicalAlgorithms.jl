@@ -7,3 +7,5 @@
 /docs/build/
 Manifest.toml
 .DS_Store
+zzmaster_diary.md
+test.jl
