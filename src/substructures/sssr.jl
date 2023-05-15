@@ -1,7 +1,7 @@
 import MolecularGraph: 
-    GraphMol, 
-    SDFileAtom, 
-    SDFileBond,
+    MolGraph, 
+    SDFAtom, 
+    SDFBond,
     sssr,
     isringatom
 
@@ -13,7 +13,7 @@ function _filter_bonds(ac::AbstractAtomContainer{T}) where {T<:Real}
      new_bonds = filter(b -> !get(b.properties, "DISULPHIDE_BOND", false), 
                         _bonds(ac), view=true)
 
-    convert(GraphMol{SDFileAtom, SDFileBond}, Substructure(ac.name, ac, new_atoms, new_bonds, ac.properties))
+    convert(MolGraph{SDFAtom, SDFBond}, Substructure(ac.name, ac, new_atoms, new_bonds, ac.properties))
 end
 
 function find_sssr(ac::AbstractAtomContainer{T}) where {T<:Real}

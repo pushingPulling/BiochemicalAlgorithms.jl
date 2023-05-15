@@ -9,3 +9,8 @@ Manifest.toml
 .DS_Store
 zzmaster_diary.md
 test.jl
+/../ball/*
+2fvy.pdb
+water.pdb
+benzene.sdf
+ball_out.txt

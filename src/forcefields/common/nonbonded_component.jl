@@ -107,7 +107,8 @@ end
         scaling_factor::T,
         lj_combinations,
         lj_interactions,
-        switching_function) where {T<:Real}
+        switching_function,
+        ff::ForceField{T}) where {T<:Real}
 
     params = get(lj_combinations, (I=type_atom_1, J=type_atom_2,), missing)
 
@@ -130,8 +131,8 @@ end
                 "$(get_full_name(atom_1, FullNameType.ADD_VARIANT_EXTENSIONS_AND_ID))/" *
                 "$(get_full_name(atom_2, FullNameType.ADD_VARIANT_EXTENSIONS_AND_ID)))"
 
-        push!(ff.unassigned_atoms, atom_1)
-        push!(ff.unassigned_atoms, atom_2)
+        !(atom_1 in ff.unassigned_atoms) && push!(ff.unassigned_atoms, atom_1)
+        !(atom_2 in ff.unassigned_atoms) && push!(ff.unassigned_atoms, atom_2)
 
         if length(ff.unassigned_atoms) > ff.options[:max_number_of_unassigned_atoms]
             throw(TooManyErrors())
@@ -167,7 +168,7 @@ function _setup_vdw!(nbc::NonBondedComponent{T}) where {T<:Real}
     unit_ϵ = get(lj_section.properties, "unit_epsilon", "kcal/mol")
 
     # ball used to write Angstrom with a capital letter; this clashes with the convention in Unitful.jl
-    if unit_R == "Angstrom"
+    if strip(unit_R) == "Angstrom"
         unit_R = "angstrom"
     end
 
@@ -448,7 +449,8 @@ function update!(nbc::NonBondedComponent{T}) where {T<:Real}
                     T(1.0),
                     lj_combinations,
                     lj_interactions,
-                    vdw_switching_function
+                    vdw_switching_function,
+                    nbc.ff
                 )
             end
         else
@@ -462,7 +464,8 @@ function update!(nbc::NonBondedComponent{T}) where {T<:Real}
                 scaling_vdw_1_4,
                 lj_combinations,
                 lj_interactions,
-                vdw_switching_function
+                vdw_switching_function,
+                nbc.ff
             )
         end
     end

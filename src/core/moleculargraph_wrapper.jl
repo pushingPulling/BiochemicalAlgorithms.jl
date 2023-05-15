@@ -1,7 +1,9 @@
 import MolecularGraph: 
-    GraphMol, graphmol, todict,
-    SDFileAtom, SDFileBond, 
-    SmilesAtom, SmilesBond
+    MolGraph,
+    SDFAtom, SDFBond, 
+    SMILESAtom, SMILESBond,
+    Metadata, Stereobond,
+    Stereocenter
 
 function _atom_to_molgraph(a)
     Dict{String, Any}(
@@ -24,12 +26,30 @@ function _bond_to_molgraph_attr(b)
         "notation" => 0,            # TODO: handle notation
         "stereo"   => :unspecified, # TODO: handle stereo chemistry
         "order"    => b.order <= BondOrder.Quadruple ? Int(b.order) : 1, # TODO: handle aromatic bonds correctly
-        "idx"      => b.idx
+        "idx"      => b.idx,
+        "isordered"=> true          # needed attribute for MolGraph SDFBonds
     )
 end
 
+function _gprops_dict_to_vec(d) 
+    # serializes the "metadata", "stereocenter" and "stereobond" 
+    # entries in the properties of a AbstractAtomContainer.
+    # these entries are types that only carry a dict called "mapping"
+    dummy = (mapping=Dict(),)
+    subdicts = getproperty.((get(d, :metadata, dummy), get(d, :stereocenter, dummy), get(d, :stereobond, dummy)), :mapping)
+
+    props = Any[isempty(k) ? [] : [vcat(e.src, e.dst, bond) for (e,bond) in zip(k, v)] 
+                                for (k,v) in zip(keys.(subdicts), values.(subdicts))]                                
+    isempty(props[1]) && (props[1] = Dict{String, Any}())
+    return collect(zip( ("metadata", "stereocenter", "stereobond"),
+                        string.((Metadata, Stereocenter{Int}, Stereobond{Int})), 
+                        props))
+
+    
+end
+
 function Base.convert(
-        ::Type{GraphMol{SDFileAtom, SDFileBond}},
+        ::Type{MolGraph{SDFAtom, SDFBond}},
         mol::AbstractAtomContainer{T}
     ) where {T<:Real}
 
@@ -39,24 +59,30 @@ function Base.convert(
     idx_to_molgraph_atom = Dict(
         a["idx"] => i for (i,a) in enumerate(molgraph_atoms)
     )
-    molgraph_atom_to_idx = Dict(
-        v => k for (k,v) in idx_to_molgraph_atom
-    )
+
+    #molgraph_atom_to_idx = Dict(
+    #    v => k for (k,v) in idx_to_molgraph_atom
+    #)
+
+    x = _gprops_dict_to_vec(mol.properties)
 
     d = Dict{String, Any}(
-        "nodetype"   => "SDFileAtom",
-        "nodeattrs"  => molgraph_atoms,
-        "edgetype"   => "SDFileBond",
-        "edges"      => map(b -> _bond_to_molgraph_edge(b, idx_to_molgraph_atom), bonds(mol)),
-        "edgeattrs"  => map(_bond_to_molgraph_attr, bonds(mol)),
-        "cache"      => Dict{Any, Any}(),
-        "attributes" => mol.properties ∪ Dict("atom_idx" => molgraph_atom_to_idx)
+        "vproptype"     => "SDFAtom",
+        "vprops"        => molgraph_atoms,
+        "eproptype"     => "SDFBond",
+        "graph"         => map(b -> _bond_to_molgraph_edge(b, idx_to_molgraph_atom), bonds(mol)),
+        "eprops"        => map(_bond_to_molgraph_attr, bonds(mol)),
+        "caches"        => Dict{Any, Any}(),
+        "gprops"        => _gprops_dict_to_vec(mol.properties)
     )
 
-    graphmol(d)
+    mol_graph = MolGraph{Int, SDFAtom, SDFBond}(d)
+
+    return mol_graph
+
 end
 
-function _molgraph_to_atom((i, a)::Tuple{Int, SDFileAtom}, T)
+function _molgraph_to_atom((i, a)::Tuple{Int, SDFAtom}, T)
     (
         number  = i,
         element = getproperty(Elements, a.symbol),
@@ -70,13 +96,12 @@ function _molgraph_to_atom((i, a)::Tuple{Int, SDFileAtom}, T)
         radius = zero(T),
         properties = Properties(
             :multiplicity => a.multiplicity,
-            :mass         => a.mass,
-            :stereo       => a.stereo
+            :mass         => a.mass
         )
     )
 end
 
-function _molgraph_to_atom((i, a)::Tuple{Int, SmilesAtom}, T)
+function _molgraph_to_atom((i, a)::Tuple{Int, SMILESAtom}, T)
     (
         number  = i,
         element = getproperty(Elements, a.symbol),
@@ -97,26 +122,25 @@ function _molgraph_to_atom((i, a)::Tuple{Int, SmilesAtom}, T)
     )
 end
 
-function _molgraph_to_bond((i, (e, b))::Tuple{Int, Tuple{Any, SDFileBond}}, mol)
+function _molgraph_to_bond((i, (e, b))::Tuple{Int, Tuple{Any, SDFBond}}, mol)
     df = atoms_df(mol)
 
     (
-        a1 = df[df.number .== e[1], :idx][1],
-        a2 = df[df.number .== e[2], :idx][1],
+        a1 = df[df.number .== e.src, :idx][1],
+        a2 = df[df.number .== e.dst, :idx][1],
         order = b.order,
         properties = Properties(
-            :notation => b.notation,
-            :stereo   => b.stereo,
-        )
+            :notation => b.notation
+            )
     )
 end
 
-function _molgraph_to_bond((i, (e, b))::Tuple{Int, Tuple{Any, SmilesBond}}, mol)
+function _molgraph_to_bond((i, (e, b))::Tuple{Int, Tuple{Any, SMILESBond}}, mol)
     df = atoms_df(mol)
 
     (
-        a1 = df[df.number .== e[1], :idx][1],
-        a2 = df[df.number .== e[2], :idx][1],
+        a1 = df[df.number .== e.src, :idx][1],
+        a2 = df[df.number .== e.dst, :idx][1],
         order = b.order,
         properties = Properties(
             :is_aromatic => b.isaromatic,
@@ -128,18 +152,18 @@ end
 
 function Base.convert(
     ::Type{Molecule{T}},
-    mg::GraphMol{GMAtom, GMBond};
+    mg::MolGraph{GMAtom, GMBond};
     system=default_system()) where {T<:Real, GMAtom, GMBond}
     
-    d = todict(mg)
+    #d = todict(mg)
     
-    mol = Molecule(system, "", Dict{Symbol, Any}(Symbol(k) => v for (k, v) in mg.attributes))
+    mol = Molecule(system, "", Dict{Symbol, Any}(Symbol(k) => v for (k, v) in mg.gprops))
 
-    for a in (t -> _molgraph_to_atom(t, T)).(enumerate(mg.nodeattrs))
+    for a in (t -> _molgraph_to_atom(t, T)).(zip(keys(mg.vprops), values(mg.vprops)))
         Atom(mol, a...)
     end
 
-    for b in _molgraph_to_bond.(enumerate(zip(mg.edges, mg.edgeattrs)), Ref(mol))
+    for b in _molgraph_to_bond.(enumerate(zip(keys(mg.eprops), values(mg.eprops))), Ref(mol))
         Bond(parent_system(mol), b.a1, b.a2, BondOrderType(b.order), b.properties)
     end
     
