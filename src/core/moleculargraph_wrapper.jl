@@ -13,7 +13,7 @@ function _atom_to_molgraph(a)
         "charge" => a.formal_charge,
         "mass"   => nothing,      # TODO: handle masses
         "coords" => a.r,
-        "idx"    => a.idx
+        "idx"    => a.idx,
     )
 end
 
@@ -37,10 +37,11 @@ function _gprops_dict_to_vec(d)
     # these entries are types that only carry a dict called "mapping"
     dummy = (mapping=Dict(),)
     subdicts = getproperty.((get(d, :metadata, dummy), get(d, :stereocenter, dummy), get(d, :stereobond, dummy)), :mapping)
-
-    props = Any[isempty(k) ? [] : [vcat(e.src, e.dst, bond) for (e,bond) in zip(k, v)] 
-                                for (k,v) in zip(keys.(subdicts), values.(subdicts))]                                
-    isempty(props[1]) && (props[1] = Dict{String, Any}())
+    temp1 = Dict(k => string(v) for (k,v) in subdicts[1])
+    temp2 = [vcat(k,string(v)) for (k,v) in subdicts[2]]
+    temp3 = [vcat(e.src, e.dst, bond) for (e,bond) in subdicts[3]]
+    props = Any[temp1, temp2, temp3]                            
+    #isempty(props[1]) && (props[1] = Dict{String, Any}())           # MolecularGraphs wants this to be an empty dict if metadata is empty...
     return collect(zip( ("metadata", "stereocenter", "stereobond"),
                         string.((Metadata, Stereocenter{Int}, Stereobond{Int})), 
                         props))

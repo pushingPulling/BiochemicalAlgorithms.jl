@@ -1,7 +1,8 @@
 export 
     Atom, 
     atom_by_idx, 
-    atom_by_name, 
+    atom_by_name,
+    atom_by_number, 
     atoms, 
     atoms_df, 
     eachatom, 
@@ -227,6 +228,12 @@ end
 @inline function atom_by_name(ac::AbstractAtomContainer{T}, name::String) where T
     sys = ac isa System{T} ? ac : ac._sys
     at = findfirst(sys._atoms.name .== name)
+    isnothing(at) ? nothing : Atom{T}(sys, DataFrameRow(sys._atoms, at, :))
+end
+
+@inline function atom_by_number(ac::AbstractAtomContainer{T}, number::Int) where T
+    sys = ac isa System{T} ? ac : ac._sys
+    at = findfirst(sys._atoms.number .== number)
     isnothing(at) ? nothing : Atom{T}(sys, DataFrameRow(sys._atoms, at, :))
 end
 
