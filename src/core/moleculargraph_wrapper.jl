@@ -3,7 +3,9 @@ import MolecularGraph:
     SDFAtom, SDFBond, 
     SMILESAtom, SMILESBond,
     Metadata, Stereobond,
-    Stereocenter
+    Stereocenter,
+    has_state,
+    set_state!
 
 function _atom_to_molgraph(a)
     Dict{String, Any}(
@@ -14,6 +16,7 @@ function _atom_to_molgraph(a)
         "mass"   => nothing,      # TODO: handle masses
         "coords" => a.r,
         "idx"    => a.idx,
+        "number" => a.number
     )
 end
 
@@ -58,26 +61,28 @@ function Base.convert(
     # to those of MolecularGraph
     molgraph_atoms = map(_atom_to_molgraph, atoms(mol))
     idx_to_molgraph_atom = Dict(
-        a["idx"] => i for (i,a) in enumerate(molgraph_atoms)
+        a["idx"] => i for (i,a) in enumerate(molgraph_atoms)    #todo:use ordered dict instead.
     )
 
-    #molgraph_atom_to_idx = Dict(
-    #    v => k for (k,v) in idx_to_molgraph_atom
-    #)
+    molgraph_atom_to_num = sort(molgraph_atoms, by=(at-> at["number"])) #need this to be sorted because of iter order for "graph"
 
-    x = _gprops_dict_to_vec(mol.properties)
+    molgraph_atom_to_idx = Dict(
+        v => k for (k,v) in idx_to_molgraph_atom
+    )
+
 
     d = Dict{String, Any}(
         "vproptype"     => "SDFAtom",
-        "vprops"        => molgraph_atoms,
+        "vprops"        => molgraph_atom_to_num,        #graph atom => atominfo
         "eproptype"     => "SDFBond",
         "graph"         => map(b -> _bond_to_molgraph_edge(b, idx_to_molgraph_atom), bonds(mol)),
         "eprops"        => map(_bond_to_molgraph_attr, bonds(mol)),
         "caches"        => Dict{Any, Any}(),
-        "gprops"        => _gprops_dict_to_vec(mol.properties)
+        "gprops"        => _gprops_dict_to_vec(mol.properties)      #Todo: add here molgraph_idx => ball_idx dict
     )
 
     mol_graph = MolGraph{Int, SDFAtom, SDFBond}(d)
+    set_state!(mol_graph, :atom_idx, molgraph_atom_to_idx)
 
     return mol_graph
 
@@ -156,16 +161,21 @@ function Base.convert(
     mg::MolGraph{GMAtom, GMBond};
     system=default_system()) where {T<:Real, GMAtom, GMBond}
     
-    #d = todict(mg)
-    
+     
     mol = Molecule(system, "", Dict{Symbol, Any}(Symbol(k) => v for (k, v) in mg.gprops))
 
     for a in (t -> _molgraph_to_atom(t, T)).(zip(keys(mg.vprops), values(mg.vprops)))
         Atom(mol, a...)
     end
 
-    for b in _molgraph_to_bond.(enumerate(zip(keys(mg.eprops), values(mg.eprops))), Ref(mol))
-        Bond(parent_system(mol), b.a1, b.a2, BondOrderType(b.order), b.properties)
+    if has_state(mg, :atom_idx)
+        for b in _molgraph_to_bond.(enumerate(( (src = mg.state[k.src], dst = mg.state[k.dst] ) ,v) for (k,v) in mg.eprops), Ref(mol))  
+            Bond(parent_system(mol), b.a1, b.a2, BondOrderType(b.order), b.properties)
+        end
+    else
+        for b in _molgraph_to_bond.(enumerate((k,v) for (k,v) in mg.eprops), Ref(mol))
+            Bond(parent_system(mol), b.a1, b.a2, BondOrderType(b.order), b.properties)
+        end
     end
     
     mol
