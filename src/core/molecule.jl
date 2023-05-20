@@ -1,6 +1,7 @@
 export AbstractMolecule, Molecule, molecule_by_idx, molecules, molecules_df, eachmolecule, nmolecules,
     parent_molecule
 
+
 """
     $(TYPEDEF)
 
@@ -68,6 +69,10 @@ function Base.setproperty!(mol::Molecule, name::Symbol, val)
     in(name, fieldnames(MoleculeTuple)) && return setproperty!(getfield(mol, :_row), name, val)
     setfield!(mol, name, val)
 end
+
+@inline has_property(mol::Molecule, key::Symbol) = haskey(mol.properties[:metadata].mapping, string(key)) || haskey(mol.properties, key)
+@inline get_property(mol::Molecule, key::Symbol) = (x = get(mol.properties[:metadata].mapping, string(key), nothing); !isnothing(x) && return x; mol.properties[key])
+@inline set_property!(mol::Molecule, key::Symbol, value) = begin mol.properties[key] = value; mol.properties[:metadata].mapping[string(key)] = value end
 
 @inline Base.show(io::IO, ::MIME"text/plain", mol::Molecule) = show(io, getfield(mol, :_row))
 @inline Base.show(io::IO, mol::Molecule) = show(io, getfield(mol, :_row))

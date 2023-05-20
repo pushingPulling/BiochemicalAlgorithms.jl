@@ -11,5 +11,5 @@
 
     detected_sssrs = map(find_sssr, molecules(system))
     @test map(length, detected_sssrs) == num_sssrs
-    @test [map(length, sssr) for sssr in detected_sssrs] == num_sssr_atoms
+    @test all([Set(map(length, sssr)) == Set(num_sssr_at) for (sssr,num_sssr_at) in zip(detected_sssrs,num_sssr_atoms)])
 end

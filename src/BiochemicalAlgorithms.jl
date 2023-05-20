@@ -1,3 +1,4 @@
+__precompile__(false)
 module BiochemicalAlgorithms
 
 using AutoHashEquals
@@ -61,6 +62,7 @@ include("forcefields/AMBER/amberff_parameters.jl")
 include("forcefields/AMBER/amberff.jl")
 
 include("forcefields/MMFF94/mmff94_parameters.jl")
+include("forcefields/MMFF94/mmff94.jl")
 
 include("optimization/optimize_structure.jl")
 

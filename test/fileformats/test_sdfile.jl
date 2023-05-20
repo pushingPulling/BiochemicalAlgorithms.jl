@@ -54,7 +54,7 @@ end
     m_sd = molecules(load_sdfile(single_name))[1]
 
     # since the molecules have different systems, we cannot simply compare them directly
-    # also, m_sd contains the atom_idx property due to the GraphMol conversion
+    # also, m_sd contains the atom_idx property due to the MolGraph conversion
     m_sd.properties = filter(((k,v),) -> k != :atom_idx, m_sd.properties)
     @test _compare_without_system(m_sd, mols[1])
 

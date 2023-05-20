@@ -20,7 +20,7 @@ function _get_torsion_data(ff::ForceField{T}, section::String) where {T<:Real}
     unit_ϕ₀ = get(torsion_section.properties, "unit_phi0", "°"       )
 
     # ball used only ascii for the units; this clashes with the convention in Unitful.jl
-    if unit_ϕ₀ == "degree"
+    if strip(unit_ϕ₀) == "degree"
         unit_ϕ₀ = "°"
     end
 

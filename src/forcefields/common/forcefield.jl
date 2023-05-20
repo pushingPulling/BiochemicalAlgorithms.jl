@@ -30,7 +30,7 @@ function init_atom_types(params::AbstractForceFieldParameters, T=Float32)
     unit_q  = get(tpl_section.properties, "unit_q", "e_au")
 
     # UnitfulAtomic uses e_au for e0
-    if unit_q == "e0"
+    if strip(unit_q) == "e0"
         unit_q = "e_au"
     end
 

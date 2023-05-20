@@ -36,7 +36,7 @@ function setup!(qbc::QuadraticBendComponent{T}) where {T<:Real}
     unit_θ₀ = get(bend_section.properties, "unit_theta0", "°")
 
     # ball used only ascii for the units; this clashes with the convention in Unitful.jl
-    if unit_θ₀ == "degree"
+    if strip(unit_θ₀) == "degree"
         unit_θ₀ = "°"
     end
 

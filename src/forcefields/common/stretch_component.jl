@@ -35,7 +35,7 @@ function setup!(qsc::QuadraticStretchComponent{T}) where {T}
     unit_r0 = get(stretch_section.properties, "unit_r0", "angstrom")
 
     # ball used to write Angstrom with a capital letter; this clashes with the convention in Unitful.jl
-    if unit_r0 == "Angstrom"
+    if strip(unit_r0) == "Angstrom"
         unit_r0 = "angstrom"
     end
 
