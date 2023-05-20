@@ -1,0 +1,98 @@
+text/plainball_out
+DataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                 v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                           SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │     2       1  C        C1                 Float32[-0.0167, 1.3781, 0.0096]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                          SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   2 │     3       2  C        C2                 Float32[0.0021, -0.0041, 0.002]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                          SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   3 │     4       3  C        C3                 Float32[1.1709, 2.0855, 0.0021]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                  v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                            SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   4 │     5       4  C        C4                 Float32[1.2084, -0.6789, -0.0132]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                          SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   5 │     6       5  C        C5                 Float32[2.396, 0.0285, -0.0212]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                 v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                           SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   6 │     7       6  C        C6                 Float32[2.3773, 1.4107, -0.0131]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                          SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   7 │     8       7  H        H7                 Float32[-0.9592, 1.9054, 0.017]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                  v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                            SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   8 │     9       8  H        H8                 Float32[-0.9258, -0.5567, 0.0083]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                          SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   9 │    10       9  H        H9                 Float32[1.1563, 3.1654, 0.0077]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                  v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                            SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 │    11      10  H        H10                Float32[1.2231, -1.7588, -0.0184]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                  v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                            SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  11 │    12      11  H        H11                Float32[3.3385, -0.4987, -0.0324]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missingDataFrameRow
+ Row │ idx    number  element  name    atom_type  r                                 v                       F                       formal_charge  charge   radius   properties                         flags          frame_id  molecule_id  chain_id  fragment_id  nucleotide_id  residue_id
+     │ Int64  Int64   T        String  String     SArray…                           SArray…                 SArray…                 Int64          Float32  Float32  Dict…                              Set…           Int64     Int64?       Int64?    Int64?       Int64?         Int64?
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 │    13      12  H        H12                Float32[3.3051, 1.9634, -0.0197]  Float32[0.0, 0.0, 0.0]  Float32[0.0, 0.0, 0.0]              0      0.0      0.0  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()         1            1   missing      missing        missing     missing"\n\n"DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   1 │    14      2      3  Double  Dict{Symbol, Any}(:stereo=>:cis,…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   2 │    15      2      4  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   3 │    16      2      8  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   4 │    17      3      5  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   5 │    18      3      9  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   6 │    19      4      7  Double  Dict{Symbol, Any}(:stereo=>:cis,…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   7 │    20      4     10  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   8 │    21      5      6  Double  Dict{Symbol, Any}(:stereo=>:cis,…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+   9 │    22      5     11  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+  10 │    23      6      7  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+  11 │    24      6     12  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()DataFrameRow
+ Row │ idx    a1     a2     order   properties                         flags
+     │ Int64  Int64  Int64  T       Dict…                              Set…
+─────┼───────────────────────────────────────────────────────────────────────────────
+  12 │    25      7     13  Single  Dict{Symbol, Any}(:stereo=>:unsp…  Set{Symbol}()
