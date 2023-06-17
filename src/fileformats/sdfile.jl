@@ -15,13 +15,13 @@ function load_sdfile(fname::String, T=Float32)
 end
 
 function write_sdfile(fname::String, mol::AbstractMolecule)
-    mg_mol = convert(MolGraph{SDFAtom, SDFBond}, mol)
+    mg_mol = convert(GraphMol{SDFileAtom, SDFileBond}, mol)
 
     sdfilewriter(fname, [mg_mol])
 end
 
 function write_sdfile(fname::String, sys::System)
-    mg_mols = [convert(MolGraph{SDFAtom, SDFBond}, m) for m in molecules(sys)]
+    mg_mols = [convert(GraphMol{SDFileAtom, SDFileBond}, m) for m in molecules(sys)]
 
     sdfilewriter(fname, mg_mols)
 end

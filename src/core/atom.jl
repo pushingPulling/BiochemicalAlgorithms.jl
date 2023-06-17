@@ -174,7 +174,7 @@ end
 
 function Base.setproperty!(atom::Atom, name::Symbol, val)
     in(name, fieldnames(AtomTuple)) && return setproperty!(getfield(atom, :_row), name, val)
-    setfield!(atom, name, val)
+    #setfield!(atom, name, val)
 end
 
 # TODO hide internals

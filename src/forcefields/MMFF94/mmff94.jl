@@ -48,20 +48,22 @@ function MMFF94FF(
 
     #bonds that arent hydrogen bonds
     #(BALL uses the concept of aromatized rings - which rings get aromatized?)
-    collect_non_hydrogen_bonds = non_hydrogen_bonds(ac)
+    non_hydro_bonds = non_hydrogen_bonds(ac)
     
     all_rings = map(find_sssr, molecules(ac))
 
     ###-###
     # Todo: make function that aromatizes a ring
-    aromatic_rings = nothing
+    aromatic_rings = map(aromatize_simple, all_rings)
 
     ###-###
 
 
 
-    non_aromatic_rings = nothing
-    aromatic_bonds = nothing
+    non_aromatic_rings = setdiff(all_rings, aromatic_rings)
+
+    #simply collect all bonds which are in an aromatic ring
+    aromatic_bonds = filter(b -> atom_by_idx(parent_system(mol), b.a1) in ring && atom_by_idx(parent_system(mol), b.a2) in ring, bonds(mol))
     # get all unassigned bonds, throw error for each bond that cant be kekulized
     unassigned_bonds = nothing 
 

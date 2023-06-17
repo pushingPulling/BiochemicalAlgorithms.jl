@@ -1,6 +1,5 @@
 export
-    simple_can_be_aromatic_,
-    simple_can_be_aromatic_weaker_
+    aromatize_simple
 
 # find all rings which contain atom `at`
 function rings_(at::Atom{T}, rings) where T
@@ -52,7 +51,7 @@ function simple_can_be_aromatic_weaker_(ring)
             bond.order == BondOrder.Single   && (single_bonds   += 1)
             bond.order == BondOrder.Aromatic && (aromatic_bonds += 1)
             if bond.order == BondOrder.Double
-                get_property(get_partner(bond, ring), :in_ring) && (double_bonds += 1)
+                has_property(get_partner(bond, atom), :in_ring) && (double_bonds += 1)
             end
 
 
@@ -93,10 +92,10 @@ function count_pi_electrons_(ring)
 
         #assuming enum "Elements" assigns names to atomic number
         atom.element == 5 && nbonds(atom) > 3 && return 0
-        if atom.element in (6, 14, 32, 50)
+        if Int(atom.element) in (6, 14, 32, 50)
             single_bonds = 0; double_bonds = 0; triple_bonds = 0
             for bond in bonds(atom)
-                bond.order == BondOrder.Double   && (double_count   += 1)
+                bond.order == BondOrder.Double   && (double_bonds   += 1)
                 bond.order == BondOrder.Aromatic && (aromatic_bonds += 1)
 
                 bond.order == BondOrder.Triple && 
@@ -111,7 +110,7 @@ function count_pi_electrons_(ring)
                 return 0
             end
 
-        elseif atom.element in (7,15,33,51) #N, P, As, Sb  - very experimental for As, Sb
+        elseif Int(atom.element) in (7,15,33,51) #N, P, As, Sb  - very experimental for As, Sb
             single_bonds = 0; double_bonds = 0; triple_bonds = 0
             
             for bond in bonds(atom)
@@ -128,7 +127,7 @@ function count_pi_electrons_(ring)
             double_bonds == 0 || (aromatic_bonds == 2 && single_bonds == 1) &&
                 (num_pi += 2; hetero_count += 1)
 
-        elseif atom.element in (8,16,34,52)
+        elseif Int(atom.element) in (8,16,34,52)
             num_pi += 2
             hetero_count += 1
         
@@ -145,32 +144,35 @@ function count_pi_electrons_(ring)
 end
 
 #aromatize simple. one ring -> aromatized ring
-function aromatize_simple(ring)
-
+#returns an empty Vector{Any} if
+function aromatize_simple(rings)
     atom_to_rings = Dict{}()
     aromatic_rings = []
     can_be_rings = []
-    can_be_aromatic = simple_can_be_aromatic(ring)
-    can_be_aromatic_weaker = can_be_aromatic ? false : simple_can_be_aromatic_weaker_(ring)
 
-    
-    if can_be_aromatic || can_be_aromatic_weaker
+    for ring in rings
         
-        if hueckel_succeeds_(ring)
-            #test if the rings contains a sp3 nitrogen
-            has_sp2n::Bool = false
-            for atom in ring
-                if atom.element == Elements.N
-                    double_bonds = count(bond -> bond.order == BondOrder.Double, bonds(atom))
-                    double_bonds < 1 && (atom_to_rings[atom] = ring; has_sp2n = true)
+        can_be_aromatic = simple_can_be_aromatic_(ring)
+        can_be_aromatic_weaker = can_be_aromatic ? false : simple_can_be_aromatic_weaker_(ring)
+
+        
+        if can_be_aromatic || can_be_aromatic_weaker
+            
+            if hueckel_succeeds_(ring)
+                #test if the rings contains a sp3 nitrogen
+                has_sp2n::Bool = false
+                for atom in ring
+                    if atom.element == Elements.N
+                        double_bonds = count(bond -> bond.order == BondOrder.Double, bonds(atom))
+                        double_bonds < 1 && (atom_to_rings[atom] = ring; has_sp2n = true)
+                    end
                 end
+                ring_container = can_be_aromatic ? aromatic_rings : can_be_rings
+                !has_sp2n ? push!(ring_container, ring) : push!(sp2n_rings, ring)   
             end
-            ring_container = can_be_aromatic ? aromatic_rings : can_be_rings
-            !has_sp2n ? push!(ring_container, ring) : push!(sp2n_rings, ring)   
+
         end
-
     end
-
 
 
     #handle the sp2n containing rings - l179
@@ -207,7 +209,7 @@ function aromatize_simple(ring)
             end
 
             
-            success = findfirst(r -> simple_can_be_aromatic_weaker_ && hueckel_succeeds_(r), rings)
+            success = findfirst(r -> simple_can_be_aromatic_weaker_(r) && hueckel_succeeds_(r), rings)
             push!(can_be_rings, rings[success])
             continue;
                 
@@ -226,10 +228,12 @@ function aromatize_simple(ring)
                 push!(can_be_rings, rings[1])
         end
     end
+
     
     # now handle the rings which can be aromatic 
-    aromatic_atoms = [at for at in ring for ring in aromatic_rings]
-    for ring in can_be_aromatic
+    #todo should this be a set?
+    aromatic_atoms = [at for ring in aromatic_rings for at in ring]
+    for ring in can_be_rings
         can_be::Bool = true
         for atom in ring
             single_bonds = 0; double_bonds = 0; aromatic_bonds = 0;
@@ -245,18 +249,22 @@ function aromatize_simple(ring)
 
             atom.element == Elements.C &&
                 !((double_bonds == 1 && single_bonds > 0) || aromatic_bonds > 1) &&
-                (can_be = false; break;)
+                    (can_be = false; break;)
         end
 
-        if can_be
-            for aro_ring in aromatic_rings      #why iterate over this? its like that in original ball
-                if hueckel_succeeds_(ring)
-                    push!(aromatic_rings, ring)
-                    break
-                end
-            end
-        end
+
+        can_be && hueckel_succeeds_(ring) && (push!(aromatic_rings, ring))
     end
 
+    for at in aromatic_atoms 
+        for bond in bonds(at) 
+            if get_partner(bond, at) in aromatic_atoms
+                bond.order = BondOrder.Aromatic
+            end
+        end 
+        set_property!(at, :IsAromatic, true)
+    end
+
+    return aromatic_rings
 
 end

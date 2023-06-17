@@ -15,15 +15,9 @@ Es gibt `compute_forces` und `compute_energy` was man auf die FF einwirkt.
 
 # Weiteres Vorgehen
 
-#### Finde beispiel bei dem die Parameter zuweisung gehen. analysiere dann, was genau in dem FF gespeichert ist.
- 
-Kann mir ah_amberff anschauen um zu gucken wie ich MMFF machen würde
-#### Versuche einen Ablauf an funktionen zu finden (e.g. FF -> Components zu FF hinzufügen -> compute forces)
--   alle components durchschauen
--   atomtype verstehen
--   forcefield.jl durcharbeiten
--   stuff in src/forcefields/AMBER durcharbeiten
-BALL implement von MMF94 nachbauen
+- aromatize_simple umschreiben, dass es auf das sssr eines mols rechnet.
+- check kekulizer c++ test
+- components implementieren
 
 # Implement diary
 -   füge molgraph 0.14.2 hinzu wegen kekulization
@@ -33,6 +27,12 @@ BALL implement von MMF94 nachbauen
 - implementiere c++ BALL'S kekulizer, aromatizer
 - wtf macht l179 aromaticiyProcessor
     - debug/look in c++ BALL?
+- aromatize_simple fertig
+- aromatize_simple test: ((Sucks, cause ball.jl  bond detection is incomplete))
+- done actually!
+- kekulisierer integrieren: done!
+
+
 #### BALL program workflow
 
 in /mnt/c/users/Dan/ballprogs
@@ -57,10 +57,3 @@ BALL Folder - G:\Program Files (x86)\ball\source
 
 MMFF94.C Line 140 starts init
 
-
-## Gitarre
-Master of Puppies YEAAAAAAAAAAAA
-Tamacun
-holy war
-rasputin
-jojo golden wind
