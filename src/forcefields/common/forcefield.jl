@@ -24,6 +24,8 @@ abstract type AbstractForceFieldComponent{T<:Real} end
     constrained_atoms::AbstractVector{Int}
 end
 
+# only works on AMBER FF, as other ini files dont have the `ChargesAndTypeNames`
+# section
 function init_atom_types(params::AbstractForceFieldParameters, T=Float32)
     tpl_section = extract_section(params, "ChargesAndTypeNames")
 
@@ -44,7 +46,7 @@ end
 
 function _try_assign!(
         templates::Dict{String, AtomTypeTemplate{T}}, 
-        name::String, 
+        name::AbstractString, 
         atom::Atom{T};
         assign_typenames::Bool,
         overwrite_typenames::Bool,
