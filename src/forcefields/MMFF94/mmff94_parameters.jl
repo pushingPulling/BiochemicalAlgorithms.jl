@@ -4,6 +4,20 @@ using Pipe
 export MMFF94Parameters, _read_types_paramfile, assign_atom_types_mmff94,
 assign_bond_types_mmff94, assign_charges
 
+###### Constants #######
+bend_elems = (Elements.H, Elements.B,Elements.C,Elements.N,Elements.O,Elements.F,
+    Elements.Si,Elements.P,Elements.S,Elements.Cl,Elements.Br,Elements.As,Elements.I)
+bend_z_ = (1.395, 0. , 2.494, 2.711, 3.045, 2.847, 2.350, 2.350, 2.980, 2.909, 3.017, 0., 3.086)
+bend_c_ = (0.,    0.704, 1.016, 1.113, 1.337, 0., 0.811, 1.068, 1.249, 1.078, 0., 0.825, 0.)
+
+HELIUM    = 2
+NEON      = 10
+ARGON     = 18
+KRYPTN    = 36
+XENON     = 54
+RADON     = 86
+########################
+
 
 @auto_hash_equals struct MMFF94Parameters{T<:Real} <: AbstractForceFieldParameters
     sections::OrderedDict{String, BALLIniFileSection}
@@ -117,9 +131,6 @@ function assign_atom_types_mmff94(ac::AbstractAtomContainer, mmff94_params, aro_
     
     
     map(mol -> assign_to(mol, elem_to_params), molecules(ac))
-    #assign_to(ac, elem_to_params)
-
-    #ToDo: Lines 329
 
     ##############
     # assign heterocyclic 5 ring member types
@@ -149,6 +160,7 @@ end
 function assign_hydrogen_types(ac, h_df, sym_df)
     hydro_adjacent_df = filter(at -> at.element == Elements.H || nbonds(at) == 1, atoms(ac))
     for at in hydro_adjacent_df
+        nbonds(at) == 0 && continue
         partner = get_partner(first(bonds(at)), at)
         h_name = only(h_df[h_df.a .== partner.name, :b])
         H_nr = only(sym_df[sym_df.symbol .== h_name, :type])
@@ -284,29 +296,38 @@ function assign_5_ring_type(atom, L5, is_anion, is_cation, ring_5_df, symbols_df
 end
 
 
-
 function assign_to(mol, elem_to_params)
     #set some default type for all non-hydro atoms
     # untyped atoms will have atom_type = "0" and name = "Any"
     atoms_ = atoms_df(mol)
     atoms_.atom_type .= "0"         #default value for atom typer
     atoms_.name .= "Any"            #default name
+    unassigned_atoms = Dict{String3, Set{Int}}()
+    map(eachrow(atoms_)) do at
+        push!(get!(unassigned_atoms, string(at.element), Set{Int}()), at.idx)
+    end
 
     # each pair in elem_to_params amps an element to all SMARTS rules for that elem
     # assign the type of an atom if it is caught by one of the rules and
     # if it doesnt already have a type assigned
-    for (elem, tups) in elem_to_params
-        for tup in tups
+    for (elem, u_ats) in unassigned_atoms
+        for tup in elem_to_params[elem]
+            length(u_ats) == 0 && break
+            
             m = @pipe SMARTSQuery(String(tup.rule)) |> match(_, mol) |> 
                 atoms.(_) |>  Iterators.flatten(_)
             isempty(m) && continue
             untyped_atoms = (at for at in m if at.name == "Any" && string(at.element) == elem)
             
             # ignoring assignSpecificValues in atomTyper.C line 216
-            map(at -> (at.name = tup.symbol; at.atom_type = tup.type), untyped_atoms)
-
+            map(untyped_atoms) do at
+                at.name = tup.symbol
+                at.atom_type = tup.type
+                delete!(u_ats, at.idx)
+            end
         end
     end
+
 end
 
 
@@ -324,6 +345,8 @@ struct Stretch_Idx
     end
 end
 
+SI(b,c) = Stretch_Idx(b,c)
+
 struct BondData{T<:Real}
     kb_normal::T
     r0_normal::T
@@ -337,7 +360,7 @@ end
 
 #struct BondData?
 
-SI(b,c) = Stretch_Idx(b,c)
+
 
 function assign_bond_types_mmff94(ac::AbstractAtomContainer{T}, 
         mmff94_params,

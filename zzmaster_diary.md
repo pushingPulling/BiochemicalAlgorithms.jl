@@ -13,10 +13,20 @@ MMFF94 ist für MDS geeignet, nicht für energy min
 in amber.jl wird ein FF erstellt. Das sollte das Ziel sein
 Es gibt `compute_forces` und `compute_energy` was man auf die FF einwirkt.
 
+## Cleanups
+
+- rewrite assign_bond_types to not use BondData.
+- use grouped dataframes to search stuff?
+
+
+# FF Worklist
+
+- use unitfulatomic to do stuff
+- hacl molgraph to only look in regiosn where it has to
+
 # Weiteres Vorgehen
 
-- aromatize_simple umschreiben, dass es auf das sssr eines mols rechnet.
-- check kekulizer c++ test
+- Kekulizer and mmff94 assign charges - how to handle unassigned atoms?
 - components implementieren
 
 # Implement diary
@@ -44,6 +54,8 @@ make
 
 # Links
 [MMFF 94 paper](https://onlinelibrary.wiley.com/doi/10.1002/(SICI)1096-987X(199604)17:5/6%3C490::AID-JCC1%3E3.0.CO;2-P)
+
+G:\Downloads\J Comput Chem - April 1996 - Halgren - Merck molecular force field  I  Basis  form  scope  parameterization  and (1)
 
 BALL docu - file:///G:/Program%20Files/BALL-1.4.79/share/BALL/doc/BALL/index.html
 

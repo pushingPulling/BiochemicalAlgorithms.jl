@@ -1,5 +1,5 @@
 using BiochemicalAlgorithms
-using MolecularGraph
+#using MolecularGraph
 
 function check_sssr()
     system = load_sdfile(ball_data_path("../test/data/rings_test.sdf"))
@@ -68,3 +68,97 @@ function test_kek()
     @show "post kek", c
 end
 
+function test_read_types()
+    system = load_sdfile(ball_data_path("../test/data/descriptors_test.sdf"))
+    mol = molecules(system)[2]
+    @show count( at -> at.element == Elements.C, atoms(mol))
+    @show count( at -> at.element == Elements.C && at.atom_type == "-1", atoms(mol))
+
+    path = ball_data_path("forcefields/MMFF94/TYPES.PAR")
+    elem_to_params = _read_types_paramfile(path)
+
+    assign_to(elem_to_params, mol)
+
+    @show [at.atom_type for at in atoms(mol)]
+    @show count( at -> at.atom_type == "-1", atoms(mol))
+end
+
+
+function test_mm()
+    i = 1
+    system = load_sdfile(ball_data_path("../test/data/descriptors_test.sdf"))
+    mmff94 = MMFF94FF(system)
+
+    #using Serialization
+    #serialize("zff", mmff94)
+    #serialize("zsys", system)
+    #mmff94 = deserialize("zff")
+    #sytem = deserialize("zsys")
+
+    msb = BiochemicalAlgorithms.MStretchBendComponent{Float32}(mmff94, "msbc", Dict{Symbol, Any}(),
+        Dict{String, Float32}(), Dict{NTuple{2,Atom{Float32}},BiochemicalAlgorithms.MStretch}(), 
+        BiochemicalAlgorithms.MBend[], BiochemicalAlgorithms.MStretchBend[])
+    #msb = deserialize("zmsb")
+    #serialize("zmsb", msb)
+    #all_rings = deserialize("zar")
+    #aromatic_rings = deserialize("zaro" )
+    all_rings = map(find_sssr, molecules(system))
+    #serialize("zar", all_rings)
+    aromatic_rings = map(aromatize_simple, all_rings)
+    #serialize("zaro", aromatic_rings)
+    setup!(msb, aromatic_rings, all_rings)
+end
+using Profile
+using StatProfilerHTML
+test_mm()
+Profile.clear_malloc_data()
+@time test_mm()
+#@profilehtml test_mm()
+
+
+#(c, mol.idx) = (12, 1)
+#(c, mol.idx) = (6, 38)
+#(c, mol.idx) = (15, 63)
+#(c, mol.idx) = (12, 112)
+#(c, mol.idx) = (13, 155)
+#(c, mol.idx) = (16, 200)
+#(c, mol.idx) = (1, 263)
+#(c, mol.idx) = (6, 273)
+#(c, mol.idx) = (0, 298)
+
+
+# build ------>stretchbend<----------------
+    # consists of a bend and a stretch
+    # stretchbend is an emergent quality of those two
+
+# find out how i make this an AbstractForceFieldComponent
+    # see if there isa  template which i should use
+        # yes -> copy funcitons and fill in with specific type
+    # learn about mmff94 stretchbend more: Which params do i need etc?
+
+# read params
+    # this time, figure out how ball accesses thigns and how i should access things
+        # AngleBend
+        # StretchBend
+        # StretchBendEmpirical
+        # equivalencies?
+        # BondStretch?          -> from bond_parameters in MMFF94.C
+        # EmpiricalBondParams?  -> from bond_parameters in MMFF94.C
+
+# lots of setup
+    # learn the theory behind the values in detail
+    # what they stand for
+    # where the values are from
+    # intended behaviour; physical mechanics
+
+# learn unitful
+
+# learn the actual mmff94 formulas with units
+    # N = kg * m / s^2
+    # J = N * m
+    # kcal = J    
+    # md = Joule/A = N
+
+    # is morse function 4th order, returns kcal/mol
+
+# make my own stretchbend class

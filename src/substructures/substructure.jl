@@ -34,6 +34,12 @@ function filter_atoms(fn, mol; name="", adjacent_bonds=false)
                            : a1 ∈ atom_view.idx && a2 ∈ atom_view.idx,
         _bonds(mol), view=true)
 
+    # include the atoms that are part of the adjacent bond
+    if adjacent_bonds
+        idxs = unique(vcat(bond_view.a1, bond_view.a2))
+        atom_view = filter(at -> at.idx in idxs, _atoms(mol), view=true)
+    end
+
     Substructure(name, mol, atom_view, bond_view)
 end
 

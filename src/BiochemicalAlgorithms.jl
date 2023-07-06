@@ -65,6 +65,7 @@ include("forcefields/AMBER/amberff.jl")
 include("forcefields/MMFF94/mmff94_parameters.jl")
 include("forcefields/MMFF94/mmff94.jl")
 include("forcefields/MMFF94/mmff94_stretch_bend.jl")
+include("forcefields/MMFF94/torsion.jl")
 
 
 include("optimization/optimize_structure.jl")

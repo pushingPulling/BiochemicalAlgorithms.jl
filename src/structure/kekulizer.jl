@@ -62,12 +62,13 @@ function fix_substructures(mol)
 
     #original query in C++ BALL was [#8;D1]~#6~[#8;D1]
     #but that sequence is just molecular oxygen?
-    m = unique(match(SMARTSQuery("[#8;D1]~[#8;D1]"), mol))
+    #m = unique(match(SMARTSQuery("[#8;D1]~[#8;D1]"), mol))
 
     #this query is actually carboxilic acid according to 
     #https://www.daylight.com/dayhtml_tutorials/languages/smarts/smarts_examples.html
     #the smarts result is buggy. the match doesnt capture all oxygens
-    m = unique(match(SMARTSQuery("[CX3](=O)[OX2H1]"), mol))
+    substruc = filter_atoms(at -> at.element == Elements.C, mol; adjacent_bonds=true)
+    m = unique(match(SMARTSQuery("[CX3](=[#8])[#8X2H1]"), substruc))
 
 
     for match in m
@@ -76,7 +77,7 @@ function fix_substructures(mol)
 
         !any(b -> b.order == BondOrder.Aromatic, bonds(carbon)) && continue
 
-        #one oxygens has only a single bond
+        #one of oxygens has only a single bond
         if nbonds(first(oxygens)) == 1
             map(o -> o.order = BondOrder.Single, oxygens)
             first(oxygens).order = BondOrder.Double
@@ -89,7 +90,8 @@ function fix_substructures(mol)
     end
 
     #fix amidine and guanine
-    m = unique(match(SMARTSQuery("[#7;D1]~[#6R0]~[#7;D1]"), mol))
+    substruc = filter_atoms(at -> at.element == Elements.N, mol; adjacent_bonds=true)
+    m = unique(match(SMARTSQuery("[#7;D1]~[#6R0]~[#7;D1]"), substruc))
     
     for match in m
         carbon = filter(at -> at.element == Elements.C, atoms(match))
@@ -113,7 +115,8 @@ function fix_substructures(mol)
 
     #fix phosphoric acid
 
-    m = unique(match(SMARTSQuery("[P]([#8;D1])([#8;D1])([#8;D1])"), mol))
+    substruc = filter_atoms(at -> at.element == Elements.P, mol; adjacent_bonds=true)
+    m = unique(match(SMARTSQuery("[P]([#8;D1])([#8;D1])([#8;D1])"), substruc))
 
     for match in m
         carbon = filter(at -> at.element == Elements.C, atoms(match))
@@ -133,8 +136,9 @@ function fix_substructures(mol)
 
     #in C++ ball the smart matches something like O~O~C
     #but the comment mentions O~N and only sets one bond.
-    m = unique(match(SMARTSQuery("[OR0D1\$(O~[CR0])]"), mol))
+    substruc = filter_atoms(at -> at.element == Elements.O, mol; adjacent_bonds=true)
 
+    m = unique(match(SMARTSQuery("[OR0D1\$(O~[CR0])]"), mol))
     for match in m
         oxygen = atoms(match)[findfirst(at -> nbonds(at) == 2, atoms(match))]
 
