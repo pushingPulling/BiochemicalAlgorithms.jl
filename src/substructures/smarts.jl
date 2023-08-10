@@ -12,7 +12,7 @@ struct SMARTSQuery
     end
 end
 
-function _to_substructure(name, mol, m; adjacent_bonds=false)
+function _to_substructure(name, mol::AbstractMolecule{T}, m; adjacent_bonds=false) where {T<:Real}
     matched_atoms = keys(m)
 
     filter_atoms(
@@ -21,7 +21,7 @@ function _to_substructure(name, mol, m; adjacent_bonds=false)
     )
 end
 
-function Base.match(query::SMARTSQuery, mol::AbstractMolecule; adjacent_bonds=false)
+function Base.match(query::SMARTSQuery, mol::AbstractMolecule{T}; adjacent_bonds=false) where {T<:Real}
     mg_mol = convert(GraphMol{SDFileAtom, SDFileBond}, mol)
     matches = substructmatches(mg_mol, query.query_graph)
 

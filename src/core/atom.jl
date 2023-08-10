@@ -12,6 +12,7 @@ export
     set_property, 
     get_full_name, 
     is_bound_to, 
+    bonded,
     is_geminal, 
     is_vicinal
 
@@ -458,6 +459,29 @@ function is_bound_to(a1::Atom, a2::Atom)
             non_hydrogen_bonds(s)
         )
     )
+end
+
+"""
+    $(TYPEDSIGNATURES)
+
+	Returns the bond that binds two atoms. Returns 'nothing' otherwise
+    Hydrogen bonds (has_flag(bond, :TYPE__HYDROGEN)) are ignored.
+"""
+function bonded(a1::Atom, a2::Atom)
+    s = a1._sys
+
+    if s != a2._sys
+        return false
+    end
+
+    idx = findfirst(
+        b -> 
+            ((b.a1 == a1.idx) && (b.a2 == a2.idx)) ||
+            ((b.a1 == a2.idx) && (b.a2 == a1.idx)), 
+        non_hydrogen_bonds(s)
+    )
+    return !isnothing(idx) ? non_hydrogen_bonds(s)[idx,:] : nothing      
+    
 end
 
 """

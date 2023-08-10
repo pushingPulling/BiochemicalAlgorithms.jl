@@ -26,7 +26,7 @@ Substructure(name,
              properties = Properties()) = 
                 Substructure{Float32}(name, parent, atoms, bonds, properties)
 
-function filter_atoms(fn, mol; name="", adjacent_bonds=false)
+function filter_atoms(fn, mol::AbstractMolecule{T}; name="", adjacent_bonds=false) where {T<:Real}
     atom_view = filter(fn, _atoms(mol), view=true)
     bond_view = filter(
         [:a1, :a2] => (a1, a2) -> 
@@ -40,7 +40,7 @@ function filter_atoms(fn, mol; name="", adjacent_bonds=false)
         atom_view = filter(at -> at.idx in idxs, _atoms(mol), view=true)
     end
 
-    Substructure(name, mol, atom_view, bond_view)
+    Substructure{T}(name, mol, atom_view, bond_view)
 end
 
 """

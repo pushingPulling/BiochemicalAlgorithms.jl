@@ -33,6 +33,8 @@ function kekulizer!(mol, aro_rings)
     fix_substructures(mol)
 
     ok::Bool = all(map(fix_aromatic_ring, aro_rings))
+    #ok::Bool = fix_aromatic_ring(aro_rings[1])
+
 
     #set unassigned bonds
     unassigned_bonds = filter(bond -> bond.order == BondOrder.Aromatic, bonds(mol))
@@ -47,6 +49,7 @@ function kekulizer!(mol, aro_rings)
                     (nr += Int(bond.order))
                 bond.order == BondOrder.Aromatic && (nr += 5)
             end
+            !haskey(at.properties, :kekulizer_max_valence) && (at.formal_charge = nr; continue)
             at.formal_charge = nr - pop!(at.properties, :kekulizer_max_valence)
         end
     end
@@ -61,7 +64,6 @@ function fix_substructures(mol)
         #handle carboxilic acid
 
     #original query in C++ BALL was [#8;D1]~#6~[#8;D1]
-    #but that sequence is just molecular oxygen?
     #m = unique(match(SMARTSQuery("[#8;D1]~[#8;D1]"), mol))
 
     #this query is actually carboxilic acid according to 
@@ -72,8 +74,8 @@ function fix_substructures(mol)
 
 
     for match in m
-        carbon = filter(at -> at.element == Elements.C, atoms(match))
-        oxygens = filter(b -> any(at -> at.element == Element.O, (b.a1, b.a2)), bonds(carbon))
+        carbon = first(filter(at -> at.element == Elements.C, atoms(match)))
+        oxygens = filter(b -> get_partner(b, carbon).element == Elements.O, bonds(carbon))
 
         !any(b -> b.order == BondOrder.Aromatic, bonds(carbon)) && continue
 
@@ -140,7 +142,9 @@ function fix_substructures(mol)
 
     m = unique(match(SMARTSQuery("[OR0D1\$(O~[CR0])]"), mol))
     for match in m
-        oxygen = atoms(match)[findfirst(at -> nbonds(at) == 2, atoms(match))]
+        idx  = findfirst(at -> nbonds(at) == 2, atoms(match))
+        idx = isnothing(idx) ? findfirst(at -> at.element == Elements.O, atoms(match)) : idx
+        oxygen = atoms(match)[idx]
 
         !any(b -> b.order == BondOrder.Aromatic, bonds(oxygen)) && continue
 
@@ -165,12 +169,12 @@ function fix_aromatic_ring(aro_ring)
     for at_info in values(at_infos)
         cur_valence = 0
         for bond in non_hydrogen_bonds(at_info.atom)
-            if !in(Int(bond.order), 
+            if !in(bond.order, 
                 (BondOrder.Double, BondOrder.Triple, BondOrder.Quadruple))
                 cur_valence += 1
             else
                 #double = 2; triple = 3; quadruple =4
-                cur_valence += Int(at_info.atom.order)
+                cur_valence += Int(bond.order)
             end
         end
 
@@ -206,11 +210,12 @@ function fix_aromatic_ring(aro_ring)
 
     if lowest_penalty[] < typemax(Int)
         if lowest_penalty[] == 0
-            rows = (atom_info.double_bond for atom_info in only(solutions))
+            #semi stable rows = (atom_info.double_bond for atom_info in values(only(solutions)) if !ismissing(atom_info.double_bond))
+            rows = (atom_info.double_bond for atom_info in values(last(solutions)) if !ismissing(atom_info.double_bond))
             idxs = [getfield(getfield(row, :_row), :dfrow) for row in rows]
             bonds_df(parent(first(aro_ring)))[idxs, :order] .= BondOrder.Double
         else
-            rows = (atom_info.double_bond for atom_info in values(distance_scores(solutions)))
+            rows = (atom_info.double_bond for atom_info in values(distance_scores(solutions)) if !ismissing(atom_info.double_bond))
             idxs = [getfield(getfield(row, :_row), :dfrow) for row in rows]
             bonds_df(parent(first(aro_ring)))[idxs, :order] .= BondOrder.Double
         end
@@ -382,15 +387,15 @@ function max_valence!(at_infos)
         elseif Int(at_info.atom.element) in (8,16,34,52)
             at_info.max_valence = 2
             at_info.atom.properties[:kekulizer_max_valence] = 2
-        elseif Int(at.element) in (7,15,33)
+        elseif Int(at_info.atom.element) in (7,15,33)
             at_info.max_valence = 3
             at_info.atom.properties[:kekulizer_max_valence] = 3
         end
 
         if Int(at_info.atom.element) in (7,16)
-            for bond in bonds(at_info.at)
-                at_info.atom.order == BondOrder.Double && 
-                    Int(get_partner(bond, at_info.atom).element) == 8 &&
+            for bond in bonds(at_info.atom)
+                bond.order == BondOrder.Double && 
+                    get_partner(bond, at_info.atom).element == Elements.O &&
                     (at_info.atom.max_valence += 2; at_info.atom.properties[:kekulizer_max_valence] += 2)
             end
         end

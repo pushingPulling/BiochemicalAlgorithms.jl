@@ -8,7 +8,7 @@ export
     compute_energy,
     compute_forces
 
-const force_prefactor = ustrip(u"kJ/mol/angstrom"/Constants.N_A |> u"N")
+
 
 abstract type AbstractForceFieldComponent{T<:Real} end
 
@@ -161,7 +161,7 @@ function compute_energy(ff::ForceField{T}; verbose=false) where {T<:Real}
     end
 
     if verbose
-        @info "AMBER Energy:"
+        @info "$(ff.name) Energy:"
 
         max_length = maximum([length(k) for (k, _) in ff.energy])
         f_string = Printf.Format("%-$(max_length)s: %.9g kJ/mol")

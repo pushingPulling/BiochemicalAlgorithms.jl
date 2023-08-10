@@ -4,7 +4,7 @@
 
     system = load_sdfile(ball_data_path("../test/data/descriptors_test.sdf"))
     rings = map(find_sssr, molecules(system))
-    aro_rings = map(r -> map(aromatize_simple,r), rings)
+    aro_rings = map(aromatize_simple, rings)
 
     bond_counts = map(mol -> count(bond -> bond.order == BondOrder.Aromatic, bonds(mol)), molecules(system))
     @test all(result .== bond_counts)

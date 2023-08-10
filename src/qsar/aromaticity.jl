@@ -91,7 +91,7 @@ function count_pi_electrons_(ring)
         end
 
         #assuming enum "Elements" assigns names to atomic number
-        atom.element == 5 && nbonds(atom) > 3 && return 0
+        atom.element == Elements.B && nbonds(atom) > 3 && return 0
         if Int(atom.element) in (6, 14, 32, 50)
             single_bonds = 0; double_bonds = 0; triple_bonds = 0
             for bond in bonds(atom)
@@ -115,16 +115,16 @@ function count_pi_electrons_(ring)
             
             for bond in bonds(atom)
                 bond.order == BondOrder.Single   && (single_bonds   += 1)
-                bond.order == BondOrder.Double   && (double_count   += 1)
+                bond.order == BondOrder.Double   && (double_bonds   += 1)
                 bond.order == BondOrder.Aromatic && (aromatic_bonds += 1)
             end
 
             # if this test is true we have a problem, maybe a P or N
             # which has more than 3 bonds
             double_bonds > 1  || single_bonds > 3 && return 0
-            double_bonds == 1 || (aromatic_bonds == 2 && single_bonds == 0) &&
+            (double_bonds == 1 || (aromatic_bonds == 2 && single_bonds == 0)) &&
                 (num_pi +=1) 
-            double_bonds == 0 || (aromatic_bonds == 2 && single_bonds == 1) &&
+            (double_bonds == 0 || (aromatic_bonds == 2 && single_bonds == 1)) &&
                 (num_pi += 2; hetero_count += 1)
 
         elseif Int(atom.element) in (8,16,34,52)
@@ -143,12 +143,14 @@ function count_pi_electrons_(ring)
 
 end
 
-#aromatize simple. one ring -> aromatized ring
-#returns an empty Vector{Any} if
+
+#returns an empty Vector{Any} if no arom rings found
+#Input: A vector of all rings from a molecule
 function aromatize_simple(rings)
     atom_to_rings = Dict{}()
     aromatic_rings = []
     can_be_rings = []
+    sp2n_rings = []
 
     for ring in rings
         
@@ -164,7 +166,10 @@ function aromatize_simple(rings)
                 for atom in ring
                     if atom.element == Elements.N
                         double_bonds = count(bond -> bond.order == BondOrder.Double, bonds(atom))
-                        double_bonds < 1 && (atom_to_rings[atom] = ring; has_sp2n = true)
+                        if double_bonds < 1 
+                            atom_to_rings[atom] = push!(get(atom_to_rings, atom, []), ring)
+                            has_sp2n = true
+                        end
                     end
                 end
                 ring_container = can_be_aromatic ? aromatic_rings : can_be_rings
@@ -232,10 +237,11 @@ function aromatize_simple(rings)
     
     # now handle the rings which can be aromatic 
     #todo should this be a set?
-    aromatic_atoms = [at for ring in aromatic_rings for at in ring]
+    aromatic_atoms = Set([at for ring in aromatic_rings for at in ring])
     for ring in can_be_rings
         can_be::Bool = true
         for atom in ring
+            atom.element != Elements.C && continue
             single_bonds = 0; double_bonds = 0; aromatic_bonds = 0;
             for bond in bonds(atom)
                 if get_partner(bond, atom) in ring
@@ -247,8 +253,7 @@ function aromatize_simple(rings)
                 end
             end
 
-            atom.element == Elements.C &&
-                !((double_bonds == 1 && single_bonds > 0) || aromatic_bonds > 1) &&
+            !((double_bonds == 1 && single_bonds > 0) || aromatic_bonds > 1) &&
                     (can_be = false; break;)
         end
 
@@ -256,6 +261,7 @@ function aromatize_simple(rings)
         can_be && hueckel_succeeds_(ring) && (push!(aromatic_rings, ring))
     end
 
+    aromatic_atoms = Set([at for ring in aromatic_rings for at in ring])
     for at in aromatic_atoms 
         for bond in bonds(at) 
             if get_partner(bond, at) in aromatic_atoms

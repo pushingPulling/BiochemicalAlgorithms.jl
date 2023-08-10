@@ -1,4 +1,4 @@
-__precompile__(false)
+#__precompile__(false)
 module BiochemicalAlgorithms
 
 using AutoHashEquals
@@ -65,7 +65,10 @@ include("forcefields/AMBER/amberff.jl")
 include("forcefields/MMFF94/mmff94_parameters.jl")
 include("forcefields/MMFF94/mmff94.jl")
 include("forcefields/MMFF94/mmff94_stretch_bend.jl")
-include("forcefields/MMFF94/torsion.jl")
+include("forcefields/MMFF94/mmff94_torsion.jl")
+include("forcefields/MMFF94/mmff94_non_bonded.jl")
+include("forcefields/MMFF94/mmff94_out_of_plane_bend.jl")
+
 
 
 include("optimization/optimize_structure.jl")

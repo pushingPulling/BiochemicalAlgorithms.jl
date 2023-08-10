@@ -18,6 +18,9 @@ XENON     = 54
 RADON     = 86
 ########################
 
+#helperfunc to index AtomTypeProperties in forcefield parameters
+at_idx(type) = parse(Int8, type) > 82 ? parse(Int8, type) - 4 : parse(Int8, type)
+
 
 @auto_hash_equals struct MMFF94Parameters{T<:Real} <: AbstractForceFieldParameters
     sections::OrderedDict{String, BALLIniFileSection}
@@ -137,7 +140,8 @@ function assign_atom_types_mmff94(ac::AbstractAtomContainer, mmff94_params, aro_
     # e.g. CSA CSB N5A N5B C5
     ##############
 
-    assign_heterocyclic_member_types(aro_rings,
+
+    assign_heterocyclic_member_types(aro_rings[1],
         cation_df, 
         ring_5_df, 
         mmff94_params.sections["Symbols"].data,
@@ -157,8 +161,9 @@ function assign_atom_types_mmff94(ac::AbstractAtomContainer, mmff94_params, aro_
     end
 end
 
+
 function assign_hydrogen_types(ac, h_df, sym_df)
-    hydro_adjacent_df = filter(at -> at.element == Elements.H || nbonds(at) == 1, atoms(ac))
+    hydro_adjacent_df = filter(at -> at.element == Elements.H && nbonds(at) == 1, atoms(ac))
     for at in hydro_adjacent_df
         nbonds(at) == 0 && continue
         partner = get_partner(first(bonds(at)), at)
@@ -223,16 +228,16 @@ function assign_heterocyclic_member_types(aro_rings, cation_df, ring_5_df, symbo
             else
                 L5 = 3
             end
+        
+            assign_5_ring_type(
+                at,
+                L5,
+                ismissing(anion_atom),
+                ismissing(cation_atom),
+                ring_5_df,
+                symbols_df
+            )
         end
-
-        assign_5_ring_type(
-            atom,
-            L5,
-            ismissing(anion_aom),
-            ismissing(cation_atom),
-            ring_5_df,
-            symbols_df
-        )
 
     end 
 end
@@ -241,17 +246,19 @@ function assign_5_ring_type(atom, L5, is_anion, is_cation, ring_5_df, symbols_df
     oldtype = atom.name
     is_anion && oldtype == "N5M" && return true
     #row = ring_5_df[(ring_5_df.oldtype .== oldtype) .& (ring_5_df.l5 .== L5), :]
-    row = ring_5_df[findfirst(x-> x.oldtype == oldtype && x.l5 == L5, eachrow(ring_5_df))]
-
-    found = true
-    is_cation && !Bool(row.imcat)   && (found = false)
-    is_anion  && !Bool(row.n5anion) && (found = false)
-
-    if found 
-        atom.name = row.aromtype
-        atom.atom_type = string(symbols_df[findfirst(x -> x == row.arom_type, symbols_df.symbol), :type])
-        return true
+    idx = findfirst(x-> x.oldtype == oldtype && x.l5 == L5, eachrow(ring_5_df))
+    if !isnothing(idx) && is_cation && is_anion
+        row = ring_5_df[idx, :]
+        found = true
+        !Bool(row.imcat)   && (found = false)
+        !Bool(row.n5anion) && (found = false)
+        if found
+            atom.name = row.aromtype
+            atom.atom_type = string(symbols_df[findfirst(x -> x == row.arom_type, symbols_df.symbol), :type])
+            return true
+        end
     end
+
 
     new_type = ""
     if atom.element == Elements.C
@@ -268,7 +275,7 @@ function assign_5_ring_type(atom, L5, is_anion, is_cation, ring_5_df, symbols_df
         val   = 0
 
         for bond in bonds(atom)
-            !in(bond.order, (BondOrder.unknown, BondOrder.Aromatic)) && (val += bond.order)
+            !in(bond.order, (BondOrder.Unknown, BondOrder.Aromatic)) && (val += Int(bond.order))
             bond.order == BondOrder.Aromatic && (val += 5)
             partner = get_partner(bond, atom)
             partner.element == Elements.O && nbonds(atom) == 1 && (oxide = true)
@@ -311,9 +318,8 @@ function assign_to(mol, elem_to_params)
     # assign the type of an atom if it is caught by one of the rules and
     # if it doesnt already have a type assigned
     for (elem, u_ats) in unassigned_atoms
-        for tup in elem_to_params[elem]
+        for tup in reverse(elem_to_params[elem])
             length(u_ats) == 0 && break
-            
             m = @pipe SMARTSQuery(String(tup.rule)) |> match(_, mol) |> 
                 atoms.(_) |>  Iterators.flatten(_)
             isempty(m) && continue
@@ -371,12 +377,11 @@ function assign_bond_types_mmff94(ac::AbstractAtomContainer{T},
     ###### make stretch params
     stretch_params = Dict{Stretch_Idx, BondData{T}}()
 
-    #may be super buggy
     map(eachrow(mmff94_params.sections["BondStretch"].data)) do row
         if Bool(row.a)
-            stretch_params[SI(row.b, row.c)] = BondData(T(0), T(0), false, row.kb, row.r0, true, false)
+            stretch_params[SI(row.b, row.c)] = BondData(T(0), T(0), false, T(row.kb), T(row.r0), true, false)
         else
-            stretch_params[SI(row.b, row.c)] = BondData(row.kb, row.r0, true, T(0), T(0), false, false)
+            stretch_params[SI(row.b, row.c)] = BondData(T(row.kb), T(row.r0), true, T(0), T(0), false, false)
         end
     end
 
@@ -398,9 +403,7 @@ end
 # assignMMFF94BondType, MMFF94.C l428
 function assign_bond_type(bond, stretch_params, aromatic_rings, atom_types_df)
 
-    # types 83-86 dont exist in the atoms type file.
-    # this func allows indexing the atom type properties df
-    at_idx(type) = parse(Int8, type) > 82 ? parse(Int8, type) - 4 : parse(Int8, type)
+
 
     # map a1.type + a2.type -> the entry in stretch_params
     a1_at = atom_by_idx(parent(bond), bond.a1)
@@ -438,6 +441,7 @@ end
 
 function get_partial_charge_(a,b,c, partial_charges_df, invalid_val, partial_bond_charges_df)
     b == c && return 0
+    (b == 0 || c == 0) && return invalid_val
 
     df = @rsubset partial_charges_df begin
         :a == a
@@ -446,15 +450,15 @@ function get_partial_charge_(a,b,c, partial_charges_df, invalid_val, partial_bon
         @kwarg view = true
     end
     
-    isempty(df) && (@show empty;return invalid_val)
-    only(df).charge != invalid_val && return only(df).charge
+    !isempty(df) && only(df).charge != invalid_val && (return only(df).charge)
+    
 
     #####heuristic value
-    p1 = partial_bond_charges_df[partial_bond_charges_df.type .== b, :pbci]
-    p2 = partial_bond_charges_df[partial_bond_charges_df.type .== c, :pbci]
+    p1 = only(partial_bond_charges_df[partial_bond_charges_df.type .== b, :pbci])
+    p2 = only(partial_bond_charges_df[partial_bond_charges_df.type .== c, :pbci])
 
     r = p2 - p1
-    r == invalid_val && (@info "No ES parameters bt:$a at1:$b at2:$c.";)
+    r == invalid_val && (@info "No ES parameters bt:$a at1:$b at2:$c."; )
     return r
 
 end
@@ -490,20 +494,24 @@ function assign_charges(ac::AbstractAtomContainer{T},
     map(at -> setproperty!(at, :InitialCharge, at.charge), atoms(ac))
     for at in atoms(ac)
         nbonds(at) == 0 && continue
+        at.atom_type == "0" && continue
         phi = partial_bond_charges_df[parse(Int8, at.atom_type), :fcadj]
         phi == invalid_val && (push!(unassigned_atoms, at))
         phi == 0 && continue
         c = at.charge * phi
         at.charge = (1 - nbonds(at) * phi) * at.charge
+
         for bond in bonds(at)
             at2 = get_partner(bond, at)
-            haskey(charges, at2) ? (charges[a2] += c) : (charges[a2] = c)
-
+            haskey(charges, at2) ? (charges[at2] += c) : (charges[at2] = c)
         end
     end
 
     #add all the charges up
-    foreach((at, c) -> at.charge += c, charges)
+    for (at, c) in zip(keys(charges), values(charges))
+        at.charge += c
+    end
+    
 
     for at1 in atoms(ac)
         charge = copy(at1.charge)
