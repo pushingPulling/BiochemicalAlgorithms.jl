@@ -267,7 +267,7 @@ function assign_5_ring_type(atom, L5, is_anion, is_cation, ring_5_df, symbols_df
         L5 == 4 && (new_type = "C5"  )
     elseif atom.element == Elements.N
         L5 == 1 && (new_type = "NPYL")
-        L5 == 2 && (new_type = "NSA" )
+        L5 == 2 && (new_type = "N5A" )
         L5 == 3 && (new_type = "N5B" )
         L5 == 4 && (new_type = "N5"  )
 

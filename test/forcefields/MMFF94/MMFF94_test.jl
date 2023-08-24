@@ -1074,26 +1074,8 @@ end
 
 end
 
-#=
+
 @testitem "Full Test" begin
-
-
-        #= on MMFF94-vdw
-    a_brom = only(filter(a -> a.element == Elements.Br, (a1,a2)))
-    a_brom.charge = -1
-    a_brom.atom_type = "91"
-    a_brom.name = "BR-"
-    a2.charge = 2
-    a2.atom_type = "95"
-    a2.name = "ZN+2"
-    =#
-    #=
-    mm.options[:electrostatic_cuton] = 8
-    mm.options[:electrostatic_cutoff] = 12
-    mm.options[:MMFF_ES_ENABLED] = true
-    mm.options[:MMFF_VDW_ENABLED] = false
-    mm.options[:distance_dependent_dielectric] = true
-    =#
 
     using LinearAlgebra
     using Unitful
@@ -1101,36 +1083,45 @@ end
     #-----------------------------------------------------------------------------------------------
     #missing one moop?
     T = Float32
-    syst = load_sdfile(ball_data_path("../test/data/descriptors_test.sdf"), T)    
+    # file from pubchem. Only 2 mols ~ 450 lines instead of 1M+
+    syst = load_sdfile(ball_data_path("../test/data/Compound_031500001_032000000_abridged.sdf"), T)    
     mm = MMFF94FF(syst)
-    a1, a2 = atoms(syst)[1:2]
+    a1, a2 = eachrow(atoms_df(syst))[1:2]
     #
     es_ball = compute_energy(mm)
-    es_cpp = 0.
-    precision = 1e-3
+    es_cpp = 52456.5
+    precision = 0.05 # 5%
     @test abs(1 - es_ball/es_cpp) < precision
     #
     precision = 1e-9
     compute_forces(mm)
-    v1 = Vector3{T}()
-    v2 = Vector3{T}()
+    #forces for first two atoms of C++ implementation
+    v1 = Vector3{T}(5.91986e-07, 1.41224e-06, -1.06324e-25)
+    v2 = Vector3{T}(-2.31876e-08, 6.73153e-09, 4.42384e-26)
     @test all(isapprox.(a1.F, v1, atol=precision))
     @test all(isapprox.(a2.F, v2, atol=precision))
+
+    # test how many components were found
+    msb = mm.components[1]
+    tors = mm.components[2]
+    nbc = mm.components[3]
+    moops = mm.components[4]
+    @test length(msb.bends) == 74
+    @test length(msb.stretch_bends) == 74
+    @test length(msb.stretches) == 44
+    @test length(tors.torsions) == 77
+    @test length(nbc.es_interactions) == length(nbc.vdw_interactions) == 743
+    @test length(moops.out_of_plane_bends) == 16
+
+
+    #quick and dirty test if the resulting forces overall are equal to ball c++
+    precision = 1e-13
     sum_ball = sum(atoms_df(syst).F)
-    sum_cpp = Vector3{T}(0)
+    sum_cpp = Vector3{T}(-1.06581e-13, -4.47642e-13, 6.53792e-29)
     @test all(isapprox.(sum_ball, sum_cpp, atol=precision))
-    println("descriptors_test.sdf")
-    println("Energies: ball $(es_ball) Cpp $(es_cpp) abs $(abs(es_ball - es_cpp))")
-    println("Force1 Ball $(a1.F) Cpp $(v1)")
-    println("FSums: ball $(sum_ball) Cpp $(sum_cpp) abs $(abs(sum_ball - sum_cpp))")
-    println("\n\n\n")
     #.----------------------------------------------------------------------------------------------
-
-    for name in names
-
-    end
 end
-=#
+
 
 
 

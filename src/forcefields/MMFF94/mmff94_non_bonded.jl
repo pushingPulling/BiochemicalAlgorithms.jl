@@ -178,12 +178,13 @@ function setup!(mnb::MNonBondedComponent{T}) where T<:Real
 
     compute_neighborhood(level) = 
         map(v->Set(map(v->mg.vprops[v][:name], neighborhood(mg, v, level))), vertices(mg))
-    
+
+    nh_1 = compute_neighborhood(1)
     nh_2 = compute_neighborhood(2)
     nh_3 = compute_neighborhood(3)
 
-    #bond_cache    = to_set(setdiff.(nh_1, nh_0))
-    #geminal_cache = to_set(setdiff.(nh_2, nh_1))
+    bond_cache    = to_set(setdiff.(nh_1, nh_0))
+    geminal_cache = to_set(setdiff.(nh_2, nh_1))
     vicinal_cache = to_set(setdiff.(nh_3, nh_2))
 
     # remember those parts that stay constant when only the system is updated
@@ -192,6 +193,8 @@ function setup!(mnb::MNonBondedComponent{T}) where T<:Real
     mnb.cache[:electrostatic_cutoff]            = es_cut_off
     mnb.cache[:electrostatic_cuton]             = es_cut_on
     mnb.cache[:vicinal_cache]                   = vicinal_cache
+    mnb.cache[:bond_cache]                      = bond_cache
+    mnb.cache[:geminal_cache]                   = geminal_cache
     mnb.cache[:distance_dependent_dielectric]   = ddd
 
     nothing
@@ -218,8 +221,13 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
     vdw_interactions = Vector{BufferedVdWInteraction{T, 14, 7}}()
     es_interactions = Vector{BufferedESInteraction{T, 14, 7}}()
 
-    vicinal_cache = mnb.cache[:vicinal_cache]
-    check_vicinal(a1, a2) = (a1 => a2) ∈ vicinal_cache
+    vicinal_cache   = mnb.cache[:vicinal_cache]
+    bond_cache      = mnb.cache[:bond_cache]
+    geminal_cache   = mnb.cache[:geminal_cache]
+    check_vicinal(a1, a2)   = (a1 => a2) ∈ vicinal_cache
+    check_bond(a1, a2)      = (a1 => a2) ∈ bond_cache
+    check_geminal(a1, a2)   = (a1 => a2) ∈ geminal_cache
+
 
     hint = Int(round(1.2 * natoms(mnb.ff.system)))
     sizehint!(vdw_interactions, hint)
@@ -238,11 +246,16 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
         buf_1 = buf_candidate[1]
         buf_2 = buf_candidate[2]
 
-        atom_1 = atom_cache[buf_1]
-        atom_2 = atom_cache[buf_2]
-
         atom_1_idx = idx_cache[buf_1]
         atom_2_idx = idx_cache[buf_2]
+
+        #ignore direct bonds and atom pairs that are seperated by only 1 atom
+        (check_bond(atom_1_idx, atom_2_idx) || check_geminal(atom_1_idx, atom_2_idx)) &&
+            continue
+
+
+        atom_1 = atom_cache[buf_1]
+        atom_2 = atom_cache[buf_2]
 
         atom_1_type = type_cache[buf_1]
         atom_2_type = type_cache[buf_2]
