@@ -1,6 +1,6 @@
 @auto_hash_equals mutable struct MOutOfPlaneBend{T<:Real}
     i::Atom{T}
-    j::Atom{T}
+    j::Atom{T}  #central atom: atoms i,k,l are bonded to atom j
     k::Atom{T}
     l::Atom{T}
     koop::T
@@ -48,6 +48,8 @@ function setup!(moop::MOutOfPlaneComponent{T}) where T<:Real
     #makes it possible to concatenate an empty DataFrame with a populated one
     dummy_df = DataFrame(propertynames(df) .=> (Int64[], Int64[], Int64[], BondOrder.T[], Dict{Symbol, Any}[], Set{Symbol}[]))
 
+    # for each atom, make an OOP if the atom has exactly 3 non-hydrogen neighbors
+    # the atoms are found by their unique index, which also is the key for the grouped data frames.
     for index in at_idxs[1]:at_idxs[2]
         f = vcat(get(gdf_l, (a1=index,), dummy_df), get(gdf_r, (a2=index,),dummy_df))
         size(f)[1] != 3 && continue;
@@ -149,14 +151,16 @@ function compute_forces(bend::MOutOfPlaneBend{T}) where T<:Real
         cn = cross(jl, ji)
 
         cos_theta = dot(ji, jk)
+        isapprox(abs(cos_theta), 1) && (cos_theta = sign(cos_theta);)
         theta = acos(cos_theta)
-        theta == 0 && continue
+        theta == 0.0 && continue
 
-        sin_dl = dot(an, jl) / sin(theta)
+        sin_dl = T(dot(an, jl) / sin(theta))
+        abs(sin_dl) > 1 && continue
         dl = asin(sin_dl)
         dl == 0 && continue
 
-        cos(dl) < 0.0001 && continue     #if wilson angle is equal to 9 degree
+        cos(dl) < 0.0001 && continue     #if wilson angle is equal to 9 degrees
 
         c1 = -dl * FC * bend.koop * force_prefactor * joule_per_cal
         tmp = cos(dl) / c1

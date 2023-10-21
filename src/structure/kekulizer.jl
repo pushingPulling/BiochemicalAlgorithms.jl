@@ -32,7 +32,7 @@ function kekulizer!(mol, aro_rings)
     #get SSSR & aromatic "systems" - system here is generalization of ring.
     fix_substructures(mol)
 
-    ok::Bool = all(map(fix_aromatic_ring, aro_rings))
+    ok::Bool = all((fix_aromatic_ring.(aro_rings)))
     #ok::Bool = fix_aromatic_ring(aro_rings[1])
 
 
@@ -97,9 +97,10 @@ function fix_substructures(mol)
     
     for match in m
         carbon = filter(at -> at.element == Elements.C, atoms(match))
-        nitrogens = filter(b -> any(at -> at.element == Element.N, (b.a1, b.a2)), bonds(carbon))
+        !any(b -> b.order == BondOrder.Aromatic, collect(Iterators.flatten(bonds.(carbon)))) && continue
+        
+        nitrogens = filter(b -> any(at -> atom_by_idx(parent(mol), at).element == Elements.N, (b.a1, b.a2)), collect(Iterators.flatten(bonds.(carbon))))
 
-        !any(b -> b.order == BondOrder.Aromatic, bonds(carbon)) && continue
 
         #if bonds are with C and H -> double
         if nbonds(first(nitrogens)) == 2 && 
@@ -122,9 +123,9 @@ function fix_substructures(mol)
 
     for match in m
         carbon = filter(at -> at.element == Elements.C, atoms(match))
-        oxygens = filter(b -> any(at -> at.element == Element.O, (b.a1, b.a2)), bonds(carbon))
+        oxygens = filter(b -> any(at -> at.element == Element.O, (b.a1, b.a2)), collect(Iterators.flatten(bonds.(carbon))))
 
-        !any(b -> b.order == BondOrder.Aromatic, bonds(carbon)) && continue
+        !any(b -> b.order == BondOrder.Aromatic, collect(Iterators.flatten(bonds.(carbon)))) && continue
 
         #one oxygen has only a single bond
         oxygen_double_bond_idx = oxygens[findfirst(ox -> nbonds(ox) == 1, oxygens)]

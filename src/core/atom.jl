@@ -480,7 +480,7 @@ function bonded(a1::Atom, a2::Atom)
             ((b.a1 == a2.idx) && (b.a2 == a1.idx)), 
         non_hydrogen_bonds(s)
     )
-    return !isnothing(idx) ? non_hydrogen_bonds(s)[idx,:] : nothing      
+    return !isnothing(idx) ? only(non_hydrogen_bonds(s)[idx,:]) : nothing      
     
 end
 
@@ -540,3 +540,4 @@ function is_vicinal(a1::Atom, a2::Atom)
 
     return false
 end
+

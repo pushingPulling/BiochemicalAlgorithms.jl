@@ -16,7 +16,7 @@ function _to_substructure(name, mol::AbstractMolecule{T}, m; adjacent_bonds=fals
     matched_atoms = keys(m)
 
     filter_atoms(
-            :number => n -> n ∈ matched_atoms, mol; 
+            n -> getfield(n, :rownumber) ∈ matched_atoms, mol; 
             name=name, adjacent_bonds=adjacent_bonds
     )
 end

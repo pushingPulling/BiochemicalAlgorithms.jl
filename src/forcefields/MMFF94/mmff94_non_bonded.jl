@@ -202,8 +202,6 @@ function setup!(mnb::MNonBondedComponent{T}) where T<:Real
 end
 
 function update!(mnb::MNonBondedComponent{T}) where T<:Real
-
-
     # calc nonbonded atom pairs.
     # change some params using vdw database
     periodic_box     = mnb.cache[:periodic_box]
@@ -213,11 +211,28 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
     ddd              = get(mnb.ff.options, :distance_dependent_dielectric, false)
     vdw_df           = mnb.ff.parameters.sections["VanDerWaals"].data
 
-    neighbors = ((mnb.ff.options[:periodic_boundary_conditions]) 
-        ? neighborlist(atoms_df(mnb.ff.system).r, unitcell=periodic_box, nonbonded_cutoff)
-        : neighborlist(atoms_df(mnb.ff.system).r, nonbonded_cutoff)
-    )
+    if get(mnb.ff.options, :override, false)
 
+        n = natoms(mnb.ff.system)
+        ats = atoms_df(mnb.ff.system).r
+        pairs = collect((n1,n2) for n1 in 1:n for n2 in n1+1:n)
+        #p1 = ats[getindex.(pairs,1)]
+        #p2 = ats[getindex.(pairs,2)]
+
+        neighbors = vmapt(a -> (a[1],a[2],norm(ats[a[1]] - ats[a[2]])), pairs)
+        filter!(x-> x[3] < nonbonded_cutoff, neighbors)
+        #neighbors = ((a,b, nei) for a in 1:n for b in a+1:n)
+        #neighbors = hcat.(((a,b) for a in 1:n for b in a+1:n), neigh)
+
+
+    else
+        neighbors = ((mnb.ff.options[:periodic_boundary_conditions]) 
+                ? neighborlist(atoms_df(mnb.ff.system).r, unitcell=periodic_box, nonbonded_cutoff)
+                : neighborlist(atoms_df(mnb.ff.system).r, nonbonded_cutoff)
+            )
+    end
+     
+    
     vdw_interactions = Vector{BufferedVdWInteraction{T, 14, 7}}()
     es_interactions = Vector{BufferedESInteraction{T, 14, 7}}()
 
@@ -241,7 +256,9 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
     mnb.es_constants = ESConstantTerms{T}(T(mnb.ff.options[:electrostatic_cuton]),
                 T(mnb.ff.options[:electrostatic_cutoff]))
 
-    for buf_candidate in neighbors
+    buffers_es = map(x-> BufferedESInteraction[], 1:Threads.nthreads())
+    buffers_vdw = map(x-> BufferedVdWInteraction[], 1:Threads.nthreads())
+    Threads.@threads for buf_candidate in neighbors
 
         buf_1 = buf_candidate[1]
         buf_2 = buf_candidate[2]
@@ -270,7 +287,7 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
 
         #if es_enabled
         push!(
-            es_interactions,
+            buffers_es[Threads.threadid()],
             BufferedESInteraction{T,14,7}(
                 T(buf_candidate[3]), #the distance
                 es_cut_off,
@@ -287,7 +304,7 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
         )
         ismissing(rij) && continue
         push!(
-            vdw_interactions,
+            buffers_vdw[Threads.threadid()],
             BufferedVdWInteraction{T, 14, 7}(
                 T(buf_candidate[3]),
                 atom_1, 
@@ -300,9 +317,10 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
 
 
     end
-
-    mnb.vdw_interactions = vdw_interactions
-    mnb.es_interactions = es_interactions
+    #mnb.vdw_interactions = vdw_interactions
+    #mnb.es_interactions = es_interactions
+    mnb.vdw_interactions = vcat(fetch.(buffers_vdw)...)
+    mnb.es_interactions = vcat(fetch.(buffers_es)...)
 
 end 
 
@@ -424,7 +442,6 @@ end
 
 
 function compute_forces(vdw_interaction::BufferedVdWInteraction{T,14,7}) where {T<:Real}
-    #i assume this is the actual distance, i.e. the square root of the substraction    d = vdw_interaction.distance
     at1     = vdw_interaction.a1
     at2     = vdw_interaction.a2
     eij     = vdw_interaction.eij
@@ -464,18 +481,43 @@ function compute_forces(mnb::MNonBondedComponent{T}) where {T<:Real}
             : s -> filter(p -> (p.a1.idx ∉ constrained_ids) || (p.a2.idx ∉ constrained_ids), s)
     )
 
-    #compute_forces(mnb.vdw_interactions[1])
-    get(mnb.ff.options ,:MMFF_VDW_ENABLED, true) && map(compute_forces, filter_pairs(mnb.vdw_interactions))
-    get(mnb.ff.options ,:MMFF_ES_ENABLED , true) && map(compute_forces, filter_pairs(mnb.es_interactions))
+    f1 = filter_pairs(mnb.vdw_interactions)
+    f2 = filter_pairs(mnb.es_interactions)
+    if get(mnb.ff.options ,:MMFF_VDW_ENABLED, true)
+        if length(f1) > 1024
+            Threads.@threads for pair in f1
+                compute_forces(pair)
+            end
+        else
+            for pair in f1
+                compute_forces(pair)
+            end
+        end
+    end
+
+    if get(mnb.ff.options ,:MMFF_ES_ENABLED, true)
+        if length(f2) > 1024
+            Threads.@threads for pair in f2
+                compute_forces(pair)
+            end
+        else
+            for pair in f2
+                compute_forces(pair)
+            end
+        end
+    end
+
+    #get(mnb.ff.options ,:MMFF_VDW_ENABLED, true) && map(compute_forces, filter_pairs(mnb.vdw_interactions))
+    #get(mnb.ff.options ,:MMFF_ES_ENABLED , true) && map(compute_forces, filter_pairs(mnb.es_interactions))
+
 
     nothing
 end
 
 function compute_energy(mnb::MNonBondedComponent{T}) where {T<:Real}
     # iterate over all interactions in the system
-    compute_energy(mnb.es_interactions[1])
-    vdw_energy   = get(mnb.ff.options ,:MMFF_VDW_ENABLED, true) ? mapreduce(compute_energy, +, mnb.vdw_interactions; init=zero(T)) : 0
-    es_energy    = get(mnb.ff.options ,:MMFF_ES_ENABLED , true) ? mapreduce(compute_energy, +, mnb.es_interactions;  init=zero(T)) : 0
+    vdw_energy   = get(mnb.ff.options ,:MMFF_VDW_ENABLED, true) ? mapreduce(compute_energy, +, mnb.vdw_interactions; init=zero(T)) : zero(T)
+    es_energy    = get(mnb.ff.options ,:MMFF_ES_ENABLED , true) ? mapreduce(compute_energy, +, mnb.es_interactions;  init=zero(T)) : zero(T)
 
     mnb.energy["Van der Waals"]  = vdw_energy
     mnb.energy["Electrostatic"]  = es_energy

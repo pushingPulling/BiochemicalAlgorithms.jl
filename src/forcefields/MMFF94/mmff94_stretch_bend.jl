@@ -618,8 +618,8 @@ function compute_forces(msb::MStretchBendComponent{T}) where T<:Real
     map(calculate_delta, msb.bends)
     map(calculate_delta, values(msb.stretches))
 
-    get(msb.ff.options, :bends_enabled, true)           && map(compute_bend_forces, msb.bends)
-    get(msb.ff.options, :stretches_enabled, true)        && map(compute_stretch_forces, values(msb.stretches))
+    get(msb.ff.options, :bends_enabled, true)          && map(compute_bend_forces, msb.bends)
+    get(msb.ff.options, :stretches_enabled, true)      && map(compute_stretch_forces, values(msb.stretches))
     get(msb.ff.options, :stretch_bends_enabled, true)  && map(compute_stretch_bend_forces, msb.stretch_bends)
 
     nothing

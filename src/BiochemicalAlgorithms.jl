@@ -13,6 +13,7 @@ using Optim
 using Optimization, OptimizationOptimJL, OptimizationOptimisers
 using Unitful, UnitfulAtomic
 using Zygote
+using LoopVectorization
 
 import ChainRulesCore: frule, rrule
 

@@ -33,7 +33,8 @@ function MMFF94FF(
         ac::AbstractAtomContainer{T}, 
         filename=ball_data_path("forcefields/MMFF94/mmff94.ini");   # ToDo: What does this file have??
         constrained_atoms=Vector{Int}(),
-        options = get_mmff94_default_options(T)) where {T<:Real}            # ToDo: do i want this?
+        options = get_mmff94_default_options(T),
+        tree=false) where {T<:Real}            
 
     mmff94_params = MMFF94Parameters(filename)                      
     mmff94_ff = ForceField{T}(                                      # ToDo: implement this function call
@@ -65,16 +66,37 @@ function MMFF94FF(
         #end
     #end
 
+    #debug
+    any(==(BondOrder.Unknown), bonds_df(ac).order) && @info "unknown order"
+    any(==(BondOrder.Aromatic), bonds_df(ac).order) && @info "aromatic order"
     aromatic_rings = map(aromatize_simple, all_rings)
 
-
-    unassigned_bonds = map(kekulizer!, molecules(ac), aromatic_rings) 
+    unassigned_bonds = []
+    #unassigned_bonds = map(kekulizer!, molecules(ac), aromatic_rings) 
+    for i in 1:length(aromatic_rings)
+        unassigned_bonds = vcat(unassigned_bonds, kekulizer!(molecules(ac)[i],aromatic_rings[i]))
+    end
 
     length(collect(Iterators.flatten(unassigned_bonds))) > 0 && @info "There are $(length(collect(Iterators.flatten(unassigned_bonds)))) unassigned Bonds in mmff94.jl::MMFF94FF."
     #fix? #length(unassigned_atoms) > 0 && push!(mmff94_ff.unassigned_atoms, Iterators.flatten(unassigned_atoms)...)
 
-    if mmff94_ff.options[:assign_types]    
-        assign_atom_types_mmff94(ac, mmff94_params, aromatic_rings)
+    if mmff94_ff.options[:assign_types]
+        if !tree
+            assign_atom_types_mmff94(ac, mmff94_params, aromatic_rings)
+        else
+            atoms_df(ac).atom_type .= "0"
+            flat_rings = collect(Iterators.flatten(all_rings))
+            rings_5 = filter(ring-> length(ring) == 5,flat_rings)
+            rings_6 = filter(ring-> length(ring) == 6,flat_rings)
+            flat_aro_rings = collect(Iterators.flatten(aromatic_rings))
+            for at in atoms(ac)
+                assign_atom_type_decision_tree(at, all_rings, rings_5, rings_6, flat_aro_rings) 
+            end
+            untyped_atoms_count = count(type -> type == "0", atoms_df(ac).atom_type)
+            if untyped_atoms_count > 0
+                @info "Could not assign atom type for $untyped_atoms_count atoms."
+            end
+        end
     end
 
     assign_bond_types_mmff94(ac, mmff94_params, all_rings)
@@ -86,7 +108,7 @@ function MMFF94FF(
     end
 
 
-    append!(            # ToDo: implement all of these
+    append!(          
         mmff94_ff.components,
         [
             MStretchBendComponent{T}(mmff94_ff, all_rings, aromatic_rings),
