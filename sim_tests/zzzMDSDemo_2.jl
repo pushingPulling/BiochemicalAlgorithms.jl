@@ -6,7 +6,7 @@ using Statistics
 using Serialization
 using LinearAlgebra
 
-sys = load_sdfile("$(pwd())/test/data/rings_test.sdf")
+sys = load_sdfile("1p8b.sdf")
 mm = MMFF94FF(sys; tree=true)
 
 
@@ -960,3 +960,44 @@ function water_dipole(dist)
     return mm
     
 end
+
+function get_ref()
+    file = "C:\\Users\\Dan\\babelprogs\\test.txt"
+    txt = read(file, String)
+    splt_txt = split(txt, "\n")
+    ref_attyp = []
+    idxs = findall(x-> x == "A T O M   T Y P E S", splt_txt)
+    for row in idxs
+        cur_row = row+3
+        while splt_txt[cur_row] != ""
+            push!(ref_attyp, split(splt_txt[cur_row], "\t")[2])
+            cur_row += 1
+        end
+    end
+    return ref_attyp
+end
+
+function compare_atom_types(file)
+    command = `"G:\Program Files (x86)\OpenBabel-3.1.1\obenergy" -ff MMFF94 $file`
+    out = Pipe()
+    run(pipeline(ignorestatus(command), stdout=out))
+    close(out.in)
+    txt=String(read(out))
+    splt_txt = split(txt, "\n")
+    ref_attyp = []
+    idxs = findall(x-> x == "A T O M   T Y P E S", splt_txt)
+    for row in idxs
+        cur_row = row+3
+        while splt_txt[cur_row] != ""
+            push!(ref_attyp, split(splt_txt[cur_row], "\t")[2])
+            cur_row += 1
+        end
+    end
+    sys = endswith(file,".sdf") ? load_sdfile(file) : load_pdb(file)
+    mm = MMFF94FF(sys; tree=true)
+    new = atoms_df(sys).atom_type
+    x = [(atoms(sys)[i].idx, ref_attyp[i], new[i]) for i in 1:length(ref_attyp) if ref_attyp[i] != new[i]]
+
+    return file, x
+end
+

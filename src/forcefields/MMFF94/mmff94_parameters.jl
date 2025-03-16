@@ -377,7 +377,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                     if     a_at.element == Elements.S; push!(alpha_atoms, a_at)
                     elseif a_at.element == Elements.O; push!(alpha_atoms, a_at)
                     elseif a_at.element == Elements.N && explicit_degree(a_at) == 3
-                        if !any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1)
+                        if !any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1, neighbors(a_at))
                             push!(alpha_atoms, a_at)
                         end
                     end
@@ -387,7 +387,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                     if     b_at.element == Elements.S; push!(beta_atoms, b_at)
                     elseif b_at.element == Elements.O; push!(beta_atoms, b_at)
                     elseif b_at.element == Elements.N && explicit_degree(b_at) == 3
-                        if !any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1)
+                        if !any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1, neighbors(b_at))
                             push!(beta_atoms, b_at)
                         end
                     end
@@ -449,7 +449,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 end
 
                 if isempty(alpha_atoms) && !isempty(beta_atoms)
-                    if      at.element == Elements.C; a.atom_type = "64"; return # Aromatic 5-ring C, beta to N:, O:, or S: (C5B)
+                    if      at.element == Elements.C; at.atom_type = "64"; return # Aromatic 5-ring C, beta to N:, O:, or S: (C5B)
                     elseif  at.element == Elements.N
                         at.atom_type = explicit_degree(at) == 3 ? "81" : "66"; return
                         # 81 : Posivite nitrogen in 5-ring alpha position (N5B+)
@@ -504,17 +504,17 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 at.atom_type = "5"; return # Hydrogen attatched to carbon (HC) or silicon (HSI)
             end
 
-            if at.element == Elements.O
+            if p_at.element == Elements.O
                 if explicit_valence(p_at) == 3
                     at.atom_type = explicit_degree(p_at) == 3 ?  "50" : "52"; return
                     # 50: Hydrogen on oxonium oxygen (HO+)
                     # 52: Hydrogen on oxenium oxygen (HO=+)
                 end
     
-                for pp_at in neighbors(at)
+                for pp_at in neighbors(p_at)
                     if pp_at.element == Elements.C
                         if is_aromatic(pp_at); at.atom_type = "29";return end    # phenol
-                        for ppp_at in neighbors(at)
+                        for ppp_at in neighbors(pp_at)
                             ppp_at.idx == p_at.idx && continue
                             if !(is_aromatic(ppp_at) && is_aromatic(pp_at)) &&
                                     bonded(ppp_at, pp_at).order == BondOrder.Double
@@ -534,7 +534,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 end
     
                 hydrogen_count = count(pp_at -> pp_at.element == Elements.H, neighbors(p_at))
-                if hydrogen_count == 2; at.atom_type = "32";return end #  Hydroxyl hydrogen in water (HOH)
+                if hydrogen_count == 2; at.atom_type = "31";return end #  Hydroxyl hydrogen in water (HOH)
                 at.atom_type = "21";return # Hydroxyl hydrogen in alcohols, Generic hydroxyl hydrogen (HOR, HO)
     
             end
@@ -579,7 +579,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
 
                         # l. 341
                         if any(ppp_at -> ppp_at.idx != pp_at.idx && 
-                                    bonded_aromatic(ppp_at, pp_at) && 
+                                    !bonded_aromatic(ppp_at, pp_at) && 
                                     bonded(ppp_at, pp_at).order == BondOrder.Double &&
                                     ppp_at.element in (Elements.C, Elements.N, Elements.O, Elements.S)
                                     , neighbors(pp_at))
@@ -621,7 +621,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
 
             # Hydrogen attached to sulfur, Hydrogen attached to >S= sulfur doubly bonded to N,
             # Hydrogen attached to phosphorus (HS, HS=N, HP)
-            # if p_at.elemnt in (Elements.S, Elements.P); at.atom_type = "71"; return end
+            if p_at.element in (Elements.S, Elements.P); at.atom_type = "71"; return end
         end     
     end
 
@@ -651,7 +651,6 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
             N3fcharge                    = 0
             for p_at in neighbors(at) 
                 
-                #ToDo: test this; idk if it can be aromatic and double bonded
                 if !bonded_aromatic(p_at, at) && bonded(p_at,at).order == BondOrder.Double
                     bonded_elem = p_at.element
                 end
@@ -660,14 +659,14 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                     p_at.element == Elements.O && (oxygen_count  += 1)
                     p_at.element == Elements.W && (sulphur_count += 1)
                 elseif explicit_degree(p_at) == 3
-                    p_at.element == Elements.O && (N3count += 1; N3fcharge += p_at.formal_charge)
+                    p_at.element == Elements.N && (N3count += 1; N3fcharge += p_at.formal_charge)
                 elseif explicit_degree(p_at) == 2 && !bonded_aromatic(p_at, at) && 
                     bonded(p_at, at).order == BondOrder.Double && p_at.element == Elements.N
                         N2count += 1
                 end
             end
 
-            if N3count >= 2 && !N2count && !oxygen_count && !sulphur_count && 
+            if N3count >= 2 && N2count == 0 && oxygen_count == 0 && sulphur_count == 0 && 
                 (bonded_elem == Elements.N || 
                     !((bonded_elem == Elements.C) && explicit_degree(at) == 3 && N3fcharge == 1))
                 at.atom_type = "57"; return # N3==C--N3; Guanidinium carbon, Carbon in +N=C-N: resonance structures (CGD+, CNN+)            
@@ -706,7 +705,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
     # Nitrogen
     if at.element == Elements.N
         if explicit_degree(at) == 4
-            any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1) &&
+            any(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1, neighbors(at)) &&
                 (at.atom_type = "68"; return) # sp3-hybridized N-oxide nitrogen (N3OX)
             at.atom_type = "34"; return # Quaternary nitrogen (NR+)
         end
@@ -714,8 +713,8 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
         if explicit_degree(at) == 3
             if explicit_valence(at) >= 4
                 bonded_elem = nothing
-                oxygen_count = count(p_at -> p_at.element == Element.O && explicit_degree(p_at) == 1,neighbors(at))
-                #Todo: test this
+                oxygen_count = count(p_at -> p_at.element == Elements.O && explicit_degree(p_at) == 1,neighbors(at))
+                
                 if any(p_at -> p_at.element == Elements.N && !bonded_aromatic(at, p_at) &&
                     bonded(at, p_at).order == BondOrder.Double
                     , neighbors(at))
@@ -723,12 +722,17 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 end
 
                 nitrogen_count = 0
-                for p_at in neighbor(at)
-                    (bonded_aromatic(at, p_at) || 
-                        !(bonded(p_at, at).order == BondOrder.Double)) && continue
-                    nitrogen_count += count(
-                        pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 3
-                        , neighbor(p_at))
+                
+                for p_at in neighbors(at)
+                    #p_at.element != Elements.C && continue
+                    if !bonded_aromatic(at, p_at) && 
+                            (bonded(p_at, at).order == BondOrder.Double) &&
+                            p_at.element == Elements.C
+
+                        nitrogen_count += count(
+                            pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 3
+                            , neighbors(p_at))
+                    end
                     
                 end
                 
@@ -736,9 +740,9 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 elseif  oxygen_count >= 2; at.atom_type = "45"; return # Nitrogen in nitro group, Nitrogen in nitrate group (NO2, NO3)
                 end
 
-                if      oxygen_count == 1; at.atom_type = "54"; return # Iminium nitrogen (N+=C)
-                elseif  oxygen_count == 2; at.atom_type = "55"; return # Either nitrogen in N+=C-N: (NCN+)
-                elseif  oxygen_count == 3; at.atom_type = "56"; return # Guanidinium nitrogen (NGD+)
+                if      nitrogen_count == 1; at.atom_type = "54"; return # Iminium nitrogen (N+=C)
+                elseif  nitrogen_count == 2; at.atom_type = "55"; return # Either nitrogen in N+=C-N: (NCN+)
+                elseif  nitrogen_count == 3; at.atom_type = "56"; return # Guanidinium nitrogen (NGD+)
                 end
 
                 bonded_elem == Elements.N && (at.atom_type = "54"; return) # Positivly charged nitrogen doubly bonded to nitrogen (N+=N) 
@@ -758,14 +762,14 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                             pp_at.element in (Elements.O, Elements.S)
                         , neighbors(p_at))
                     , neighbors(at))
+
+                double_bonded_elem = triple_bonded_elem = nothing
                 
                 for p_at in neighbors(at)
                     if p_at.element == Elements.C
                         N2count = N3count = 0
                         oxygen_count = sulphur_count = 0
 
-                        # find some properties in nbrnbr
-                        double_bonded_elem = triple_bonded_elem = nothing
                         # following functions return the whole atom, not the element of the atoms
                         double_bonded_elem_1 = filter(pp_at -> 
                             !bonded_aromatic(p_at, pp_at) && bonded(pp_at, p_at).order == BondOrder.Double
@@ -777,17 +781,14 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                             !bonded_aromatic(pp_at, p_at) && bonded(pp_at, p_at).order == BondOrder.Triple
                             , collect(neighbors(p_at)))
                         
-                        if any(pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 3 && 
+                        N3count = count(pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 3 && 
                                 count(ppp_at -> ppp_at.element == Elements.O , neighbors(pp_at)) < 2
                                 , neighbors(p_at))
-                            N3count += 1
-                        end
+                            
 
-                        if any(pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 2 &&
+                        N2count = count(pp_at -> pp_at.element == Elements.N && explicit_degree(pp_at) == 2 &&
                                 (bonded(pp_at, p_at).order == BondOrder.Double || bonded_aromatic(pp_at, p_at))
                                 , neighbors(p_at))
-                            N2count += 1
-                        end
 
                         oxygen_count  += count(pp_at -> is_aromatic(pp_at) && pp_at.element == Elements.O, neighbors(p_at))
                         sulphur_count += count(pp_at -> is_aromatic(pp_at) && pp_at.element == Elements.S, neighbors(p_at))
@@ -798,7 +799,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
 
 
                         if N3count == 3; at.atom_type = "56"; return end # Guanidinium nitrogen (NGD+)
-                        if !is_amide && !sulphon_amide && !oxygen_count && !sulphur_count && is_aromatic(p_at)
+                        if !is_amide && !is_sulphon_amide && oxygen_count == 0 && sulphur_count == 0 && is_aromatic(p_at)
                             at.atom_type = "40"; return 
                         end
                         if N3count == 2 && (double_bonded_elem == Elements.N) && !N2count
@@ -874,8 +875,8 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                 if any(p_at -> p_at.element == Elements.S &&
                     count(pp_at -> pp_at.element == Elements.O &&
                         explicit_degree(pp_at) == 1
-                        , neighbors(p_at)
-                    ) >= 2
+                        , neighbors(p_at)) >= 2
+                    , neighbors(at)
                 )
                     at.atom_type = "43"; return # Sulfonamide nitrogen (NSO2, NSO3)
                 end
@@ -956,7 +957,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                     end
                 end
 
-                if p_at.element == Element.N
+                if p_at.element == Elements.N
                     # O-?-N-?-O
                     # Oxygen in nitro group, Nitro-group oxygen in nitrate,
                     # Nitrate anion oxygen (O2N, O2NO, O3N)
@@ -977,7 +978,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
 
                 end
 
-                if p_at.element == Element.S
+                if p_at.element == Elements.S
                     if sulphur_count == 1; at.atom_type = "32"; return end # O--S
                     # Single terminal oxygen on sulfur, One of 2 terminal O's on sulfur,
                     # One of 3 terminal O's on sulfur, Terminal O in sulfate anion,
@@ -991,7 +992,7 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
                         # O==S
                         is_sulfoxide = true
                         oxy_sulphur_bonds = count(pp_at -> pp_at.idx != at.idx && pp_at.element == Elements.O, neighbors(p_at))
-                        if any(
+                        if any(pp_at ->
                             at.idx != pp_at.idx &&
                             (!bonded_aromatic(pp_at, p_at) && bonded(pp_at, p_at).order == BondOrder.Double && pp_at.element == Elements.C && oxy_sulphur_bonds == 1) ||
                             ((pp_at.element == Elements.O && explicit_degree(pp_at) == 1) || (pp_at.element == Elements.N && explicit_degree(pp_at) == 2))
@@ -1066,8 +1067,12 @@ function assign_atom_type_decision_tree(at::Atom{T}, all_rings, rings_5, rings_6
         end
 
         if explicit_degree(at) == 1
-            sulphur_count  = length(filter((p_at, pp_at) -> pp_at.element == Elements.S, Iterators.product(neighbors(at), (neighbors(p_at) for p_at in neighbors_(at)), 2)))
-            double_bond_to = filter(p_at -> !bonded_aromatic(p_at, at) && bonded(p_at, at).order == BondOrder.Double, neighbors(at)) 
+
+            sulphur_count  = 0
+            for p_at in neighbors(at)
+                sulphur_count += count(pp_at -> pp_at.element == Elements.S, neighbors(p_at))
+            end 
+            double_bond_to = filter(p_at -> !bonded_aromatic(p_at, at) && bonded(p_at, at).order == BondOrder.Double, collect(neighbors(at)) )
             double_bond_to = !isempty(double_bond_to) ? last(double_bond_to).element : nothing
 
             if double_bond_to == Elements.C && sulphur_count != 2

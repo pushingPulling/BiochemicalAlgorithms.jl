@@ -47,6 +47,7 @@ function setup!(moop::MOutOfPlaneComponent{T}) where T<:Real
     at_idxs = (minimum(minimum.((df.a1, df.a2))), maximum(maximum.((df.a1,df.a2))))
     #makes it possible to concatenate an empty DataFrame with a populated one
     dummy_df = DataFrame(propertynames(df) .=> (Int64[], Int64[], Int64[], BondOrder.T[], Dict{Symbol, Any}[], Set{Symbol}[]))
+    unassigned_oops = 0
 
     # for each atom, make an OOP if the atom has exactly 3 non-hydrogen neighbors
     # the atoms are found by their unique index, which also is the key for the grouped data frames.
@@ -65,14 +66,16 @@ function setup!(moop::MOutOfPlaneComponent{T}) where T<:Real
             gdf_oop, equivs)
 
         if ismissing(koop)
-            @warn """Cannot find find OOP params for at types $(i.atom_type),\
-            $(j.atom_type), $(k.atom_type), $(l.atom_type)"""
+            #@warn """Cannot find find OOP params for at types $(i.atom_type),\
+            #$(j.atom_type), $(k.atom_type), $(l.atom_type)"""
+            unassigned_oops += 1
             #assign into unassigned atoms
             continue
         end
 
         koop != 0.0 && push!(moop.out_of_plane_bends, MOutOfPlaneBend{T}(i, j, k, l, koop))
     end
+    unassigned_oops > 0 && @info "$(unassigned_oops) unassigned Out Of Plane Bends."
 end
 
 function get_oop_params(a1_t, a2_t, a3_t, a4_t, gdf, equivs)

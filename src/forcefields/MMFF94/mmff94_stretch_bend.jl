@@ -220,6 +220,7 @@ function setupStretches(msb::MStretchBendComponent{T}) where T<:Real
     gdf_stretch_e = groupby(stretch_e_params, [:type1, :type2])
     bonds = non_hydrogen_bonds(msb.ff.system)
     unassigned_atoms = Atom{T}[]
+    unassigned_counter = 0
 
     for bond in bonds
         
@@ -261,14 +262,16 @@ function setupStretches(msb::MStretchBendComponent{T}) where T<:Real
             continue
         end
  
-        @info """Cannot find stretch parameters for atom types $(at1.atom_type) $(at2.atom_type).
-        \nAtoms are: \n$((at1.idx, at1.element, at1.atom_type, at1.name)),
-        \n$((at2.idx, at2.element, at2.atom_type, at2.name))"""
+        unassigned_counter += 1
+        #@info """Cannot find stretch parameters for atom types $(at1.atom_type) $(at2.atom_type).
+        #\nAtoms are: \n$((at1.idx, at1.element, at1.atom_type, at1.name)),
+        #\n$((at2.idx, at2.element, at2.atom_type, at2.name))"""
         push!(unassigned_atoms, at1, at2)
         
     end
 
     msb.stretches = stretches
+    @info "$(unassigned_counter) unassigned StretchBends"
     return unassigned_atoms::Vector{Atom{T}}
 end
 
@@ -279,6 +282,7 @@ function setupBends(msb::MStretchBendComponent{T}) where T<:Real
     equivs               = msb.ff.parameters.sections["Equivalences"].data
     gdf_b = groupby(bend_params, [:a, :b, :c, :d])
 
+    unassigned_bends = 0
     unassigned_atoms = Atom{T}[]
     for atom in atoms(msb.ff.system)
         for (cur_bond, b1) in enumerate(non_hydrogen_bonds(atom))
@@ -331,17 +335,18 @@ function setupBends(msb::MStretchBendComponent{T}) where T<:Real
 
                 push!(unassigned_atoms, at1, at2, at3)
 
-                @info """MStretchBendComponent - setupBends: Cannot find bend parameters
-                for atom types a1:$(at1.atom_type) a2:$(at2.atom_type) a3:$(at1.atom_type)
-                    and bend type $ATIJK.\n Atoms are:\n
-                    $((at1.idx, at1.element, at1.atom_type, at1.name)), 
-                    $((at2.idx, at2.element, at2.atom_type, at2.name)), 
-                    $((at3.idx, at3.element, at3.atom_type, at3.name))
-                    """
+                #@info """MStretchBendComponent - setupBends: Cannot find bend parameters
+                #for atom types a1:$(at1.atom_type) a2:$(at2.atom_type) a3:$(at1.atom_type)
+                #    and bend type $ATIJK.\n Atoms are:\n
+                #    $((at1.idx, at1.element, at1.atom_type, at1.name)), 
+                #    $((at2.idx, at2.element, at2.atom_type, at2.name)), 
+                #    $((at3.idx, at3.element, at3.atom_type, at3.name))
+                #    """
+                unassigned_bends += 1
             end
         end
     end
-
+    @info "$(unassigned_bends) unassigned bends"
     return
 end
 
@@ -462,7 +467,7 @@ function setupStretchBends(msb::MStretchBendComponent{T}) where T<:Real
     gdf2 = groupby(msb.ff.parameters.sections["StretchBendEmpirical"].data, [:IR, :JR, :KR])
 
     for bend in (b for b in msb.bends if !b.is_linear)
-
+        
         stretch1 = msb.stretches[Tuple(sort([bend.at1, bend.at2], by=at -> at.idx))]
         stretch2 = msb.stretches[Tuple(sort([bend.at2, bend.at3], by=at -> at.idx))]
         

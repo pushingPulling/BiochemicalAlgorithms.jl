@@ -256,9 +256,10 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
     mnb.es_constants = ESConstantTerms{T}(T(mnb.ff.options[:electrostatic_cuton]),
                 T(mnb.ff.options[:electrostatic_cutoff]))
 
-    buffers_es = map(x-> BufferedESInteraction[], 1:Threads.nthreads())
-    buffers_vdw = map(x-> BufferedVdWInteraction[], 1:Threads.nthreads())
-    Threads.@threads for buf_candidate in neighbors
+    #buffers_es = map(x-> BufferedESInteraction[], 1:Threads.nthreads())
+    #buffers_vdw = map(x-> BufferedVdWInteraction[], 1:Threads.nthreads())
+    #Threads.@threads for buf_candidate in neighbors
+    for buf_candidate in neighbors
 
         buf_1 = buf_candidate[1]
         buf_2 = buf_candidate[2]
@@ -287,7 +288,8 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
 
         #if es_enabled
         push!(
-            buffers_es[Threads.threadid()],
+            es_interactions,
+            #buffers_es[Threads.threadid()],
             BufferedESInteraction{T,14,7}(
                 T(buf_candidate[3]), #the distance
                 es_cut_off,
@@ -304,7 +306,8 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
         )
         ismissing(rij) && continue
         push!(
-            buffers_vdw[Threads.threadid()],
+            vdw_interactions,
+            #buffers_vdw[Threads.threadid()],
             BufferedVdWInteraction{T, 14, 7}(
                 T(buf_candidate[3]),
                 atom_1, 
@@ -317,10 +320,10 @@ function update!(mnb::MNonBondedComponent{T}) where T<:Real
 
 
     end
-    #mnb.vdw_interactions = vdw_interactions
-    #mnb.es_interactions = es_interactions
-    mnb.vdw_interactions = vcat(fetch.(buffers_vdw)...)
-    mnb.es_interactions = vcat(fetch.(buffers_es)...)
+    mnb.vdw_interactions = vdw_interactions
+    mnb.es_interactions = es_interactions
+    #mnb.vdw_interactions = vcat(fetch.(buffers_vdw)...)
+    #mnb.es_interactions = vcat(fetch.(buffers_es)...)
 
 end 
 

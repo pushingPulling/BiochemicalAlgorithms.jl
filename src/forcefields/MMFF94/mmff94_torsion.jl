@@ -154,8 +154,13 @@ function compute_energy(torsion::MTorsion{T}) where {T<:Real}
 
 end
 
+function angle(a::Vector3{T}, b::Vector3{T}) where {T<:Real}
+    acos(max(min(dot(a,b) / (sqrt(norm(a) * norm(b))),1),-1))
+end
+
+
 function compute_forces(torsion::MTorsion{T}) where {T<:Real}
-    angle(a::Vector3{T}, b::Vector3{T}) = acos(max(min(dot(a,b) / (sqrt(norm(a) * norm(b))),1),-1))
+    
 
     at1 = torsion.at1
     at2 = torsion.at2

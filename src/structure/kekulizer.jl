@@ -307,6 +307,7 @@ function fix_aromatic_systems(lowest_p, cur_penalty, solutions, at_infos, idx)
         ai.uncharged_double != 1 && (tap = get_penalty(ai, 1))
 
         for abond in ai.abonds
+            !haskey(at_infos, get_partner(abond, ai.atom).idx) && continue
             partner = at_infos[get_partner(abond, ai.atom).idx]
             partner.cur_double == partner.max_double && continue
 
