@@ -35,16 +35,16 @@ include("core/fragment.jl")
 include("core/nucleotide.jl")
 include("core/residue.jl")
 include("core/protein.jl")
-include("core/moleculargraph_wrapper.jl")
+#include("core/moleculargraph_wrapper.jl")
 
 include("substructures/substructure.jl")
-include("substructures/smarts.jl")
+#include("substructures/smarts.jl")
 include("substructures/sssr.jl")
 
 include("fileformats/ball_ini_file.jl")
-module PubChem
-include("fileformats/pubchem_json.jl")
-end
+#module PubChem
+#include("fileformats/pubchem_json.jl")
+#end
 include("fileformats/pdb.jl")
 include("fileformats/sdfile.jl")
 

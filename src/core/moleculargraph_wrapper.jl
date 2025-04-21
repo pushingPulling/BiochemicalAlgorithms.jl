@@ -28,53 +28,55 @@ function _bond_to_molgraph_attr(b)
     )
 end
 
-function Base.convert(
-        ::Type{GraphMol{SDFileAtom, SDFileBond}},
-        mol::AbstractAtomContainer{T}
-    ) where {T<:Real}
 
-    # create an intermediate dictionary to map from our data structures
-    # to those of MolecularGraph
-    molgraph_atoms = map(_atom_to_molgraph, atoms(mol))
-    idx_to_molgraph_atom = Dict(
-        a["idx"] => i for (i,a) in enumerate(molgraph_atoms)
-    )
-    molgraph_atom_to_idx = Dict(
-        v => k for (k,v) in idx_to_molgraph_atom
-    )
+#function Base.convert(
+#        ::Type{GraphMol{SDFileAtom, SDFileBond}},
+#        mol::AbstractAtomContainer{T}
+#    ) where {T<:Real}
+#
+#    # create an intermediate dictionary to map from our data structures
+#    # to those of MolecularGraph
+#    molgraph_atoms = map(_atom_to_molgraph, atoms(mol))
+#    idx_to_molgraph_atom = Dict(
+#        a["idx"] => i for (i,a) in enumerate(molgraph_atoms)
+#    )
+#    molgraph_atom_to_idx = Dict(
+#        v => k for (k,v) in idx_to_molgraph_atom
+#    )
+#
+#    d = Dict{String, Any}(
+#        "nodetype"   => "SDFileAtom",
+#        "nodeattrs"  => molgraph_atoms,
+#        "edgetype"   => "SDFileBond",
+#        "edges"      => map(b -> _bond_to_molgraph_edge(b, idx_to_molgraph_atom), bonds(mol)),
+#        "edgeattrs"  => map(_bond_to_molgraph_attr, bonds(mol)),
+#        "cache"      => Dict{Any, Any}(),
+#        "attributes" => mol.properties ∪ Dict("atom_idx" => molgraph_atom_to_idx)
+#    )
+#
+#    graphmol(d)
+#end
 
-    d = Dict{String, Any}(
-        "nodetype"   => "SDFileAtom",
-        "nodeattrs"  => molgraph_atoms,
-        "edgetype"   => "SDFileBond",
-        "edges"      => map(b -> _bond_to_molgraph_edge(b, idx_to_molgraph_atom), bonds(mol)),
-        "edgeattrs"  => map(_bond_to_molgraph_attr, bonds(mol)),
-        "cache"      => Dict{Any, Any}(),
-        "attributes" => mol.properties ∪ Dict("atom_idx" => molgraph_atom_to_idx)
-    )
-
-    graphmol(d)
-end
-
-function _molgraph_to_atom((i, a)::Tuple{Int, SDFileAtom}, T)
-    (
-        number  = i,
-        element = getproperty(Elements, a.symbol),
-        name    = "$(a.symbol)$(i)",
-        atomtype = "",
-        r = Vector3{T}(a.coords),
-        v = zeros(Vector3{T}),
-        F = zeros(Vector3{T}),
-        formal_charge = a.charge,
-        charge = zero(T),
-        radius = zero(T),
-        properties = Properties(
-            :multiplicity => a.multiplicity,
-            :mass         => a.mass,
-            :stereo       => a.stereo
-        )
-    )
-end
+#function _molgraph_to_atom((i, a)::Tuple{Int, SDFileAtom}, T)
+#    (
+#        number  = i,
+#        element = getproperty(Elements, a.symbol),
+#        name    = "$(a.symbol)$(i)",
+#        atomtype = "",
+#        r = Vector3{T}(a.coords),
+#        v = zeros(Vector3{T}),
+#        F = zeros(Vector3{T}),
+#        formal_charge = a.charge,
+#        charge = zero(T),
+#        radius = zero(T),
+#        properties = Properties(
+#            :multiplicity => a.multiplicity,
+#            :mass         => a.mass,
+#            :stereo       => a.stereo
+#        )
+#    )
+#end
+#
 
 function _molgraph_to_atom((i, a)::Tuple{Int, SmilesAtom}, T)
     (
